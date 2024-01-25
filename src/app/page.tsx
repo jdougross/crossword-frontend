@@ -153,16 +153,27 @@ function HeaderSection({
 }
 
 function Clue({ clue, direction }: { clue: string; direction: Direction }) {
-  const { direction: contextDirection, highlightedClueNumber } =
-    useContext(GameContext);
+  const {
+    direction: contextDirection,
+    gridnums,
+    highlightedClueNumber,
+    setDirection,
+    setSelectedSquare,
+  } = useContext(GameContext);
 
   const clueNumber = Number(clue.split(".")[0]);
   const backgroundColor =
     clueNumber == highlightedClueNumber && direction === contextDirection
       ? theme.color.highlight
       : theme.color.foreground; // weird theming... bg / fg should be different
+
+  function handleClick() {
+    setDirection(direction);
+    setSelectedSquare(gridnums.indexOf(clueNumber) || 0);
+  }
+
   return (
-    <Text backgroundColor={backgroundColor} py={8}>
+    <Text backgroundColor={backgroundColor} py={8} onClick={handleClick}>
       {clue}
     </Text>
   );
@@ -196,9 +207,11 @@ function Clues({ across, down }: { across: string[]; down: string[] }) {
 const GameContext = createContext({
   isRevealed: false,
   direction: Direction.ACROSS,
+  gridnums: [] as Number[],
   highlightedClueNumber: 1,
   highlightedSquares: [-1],
   selectedSquare: -1,
+  setDirection: (d: Direction) => {},
   setSelectedSquare: (i: number) => {},
 });
 
@@ -271,9 +284,11 @@ function Crossword() {
         value={{
           isRevealed,
           direction,
+          gridnums,
           highlightedClueNumber,
           highlightedSquares,
           selectedSquare,
+          setDirection: (d) => setDirection(d),
           setSelectedSquare: (i) => setSelectedSquare(i),
         }}
       >
