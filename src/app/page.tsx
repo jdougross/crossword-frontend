@@ -1,113 +1,335 @@
-import Image from "next/image";
+"use client";
+
+import data from "./data.json";
+import {
+  Box,
+  Button,
+  Flex,
+  Heading,
+  Input,
+  List,
+  Text,
+} from "@chakra-ui/react";
+import React, { createContext, useContext, useState } from "react";
+
+enum Direction {
+  ACROSS,
+  DOWN,
+}
+
+const theme = {
+  border: {
+    width: "1px",
+  },
+  color: {
+    background: "white",
+    foreground: "black",
+    highlight: "#BDF",
+  },
+};
+
+interface Cell {
+  correctEntry: string;
+  index: number;
+  squareNumber: number;
+  userEntry: string;
+}
+
+function Blank() {
+  return (
+    <Box
+      borderWidth={theme.border.width}
+      borderColor={theme.color.foreground}
+      bg={theme.color.foreground}
+      w="100%"
+      h="100%"
+    />
+  );
+}
+
+interface SquareProps {
+  cell: Cell;
+}
+
+function Square({ cell }: SquareProps) {
+  const { isRevealed, highlightedSquares, selectedSquare, setSelectedSquare } =
+    useContext(GameContext);
+  const { correctEntry, index, squareNumber, userEntry } = cell;
+
+  const [userValue, setUserValue] = useState(userEntry);
+
+  function handleInputChange(event: React.ChangeEvent<HTMLInputElement>) {
+    setUserValue(event.target.value.slice(-1).toUpperCase() || "");
+  }
+
+  const backgroundColor =
+    // selectedSquare == index ? theme.color.highlight : theme.color.background;
+    highlightedSquares.includes(index)
+      ? theme.color.highlight
+      : theme.color.background;
+
+  return correctEntry == "." ? (
+    <Blank />
+  ) : (
+    <Flex
+      backgroundColor={backgroundColor}
+      borderWidth={theme.border.width}
+      borderColor={theme.color.foreground}
+      w="100%"
+      h="100%"
+      direction="column"
+    >
+      <Box h={"20%"}>
+        <Text
+          color={theme.color.foreground}
+          fontSize={10}
+          children={squareNumber || ""}
+        />{" "}
+        {/* OK OR NAH? */}
+      </Box>
+      <Flex w="100%" h="100%" align="center" justify="center">
+        {isRevealed ? (
+          <Text color={theme.color.foreground} children={correctEntry} />
+        ) : (
+          <Input
+            w="100%"
+            backgroundColor={backgroundColor}
+            textAlign={"center"}
+            textColor={theme.color.foreground}
+            _focusVisible={{ outline: "none" }}
+            value={userValue}
+            onChange={handleInputChange}
+            onFocus={() => setSelectedSquare(index)}
+          />
+        )}
+      </Flex>
+    </Flex>
+  );
+}
+
+function Grid({ rows }: { rows: Cell[][] }) {
+  return (
+    <Box bg={theme.color.background} w="100%">
+      <Flex
+        h="100%"
+        direction="column"
+        align="space-between"
+        justify="space-between"
+      >
+        {rows.map((row, rowIndex) => (
+          <Flex
+            h="100%"
+            direction="row"
+            alignItems="center"
+            justifyContent={"space-between"}
+            key={JSON.stringify(row)}
+          >
+            {row.map((cell, colIndex) => (
+              <Square cell={cell} key={`${colIndex}${cell.correctEntry}`} />
+            ))}
+          </Flex>
+        ))}
+      </Flex>
+    </Box>
+  );
+}
+
+function HeaderSection({
+  author,
+  date,
+  title,
+}: {
+  author: string;
+  date: string;
+  title: string;
+}) {
+  return (
+    <Flex direction="column" align="center" justify="space-between" w="100%">
+      <Heading color={theme.color.background}>{title}</Heading>
+      {/* <Heading color={theme.color.background}>{date}</Heading> */}
+      {/* <Heading color={theme.color.background}>{`by ${author}`}</Heading> */}
+    </Flex>
+  );
+}
+
+function Clue({ clue, direction }: { clue: string; direction: Direction }) {
+  const { direction: contextDirection, highlightedClueNumber } =
+    useContext(GameContext);
+
+  const clueNumber = Number(clue.split(".")[0]);
+  const backgroundColor =
+    clueNumber == highlightedClueNumber && direction === contextDirection
+      ? theme.color.highlight
+      : theme.color.foreground; // weird theming... bg / fg should be different
+  return (
+    <Text backgroundColor={backgroundColor} py={8}>
+      {clue}
+    </Text>
+  );
+}
+
+function ClueList({
+  clues,
+  direction,
+}: {
+  clues: string[];
+  direction: Direction;
+}) {
+  return (
+    <List width={200} padding={10}>
+      {clues.map((clue) => (
+        <Clue clue={clue} direction={direction} key={clue} />
+      ))}
+    </List>
+  );
+}
+
+function Clues({ across, down }: { across: string[]; down: string[] }) {
+  return (
+    <Flex direction="row">
+      <ClueList clues={across} direction={Direction.ACROSS} />
+      <ClueList clues={down} direction={Direction.DOWN} />
+    </Flex>
+  );
+}
+
+const GameContext = createContext({
+  isRevealed: false,
+  direction: Direction.ACROSS,
+  highlightedClueNumber: 1,
+  highlightedSquares: [-1],
+  selectedSquare: -1,
+  setSelectedSquare: (i: number) => {},
+});
+
+function Crossword() {
+  const [isRevealed, setIsRevealed] = useState(false);
+  const [direction, setDirection] = useState(Direction.ACROSS);
+  const [selectedSquare, setSelectedSquare] = useState(-1);
+
+  const { author, date, clues, grid, gridnums, size, title } = data;
+
+  let highlightedSquares: number[] = [selectedSquare];
+
+  if (direction === Direction.ACROSS) {
+    let l = selectedSquare - 1;
+    let r = selectedSquare + 1;
+    while (grid[l] != "." && l >= 0 && l % size.rows != size.cols - 1) {
+      highlightedSquares.push(l);
+      l--;
+    }
+    while (grid[r] != "." && r >= 0 && r < grid.length && r % size.rows != 0) {
+      highlightedSquares.push(r);
+      r++;
+    }
+  } else {
+    let t = selectedSquare - size.cols;
+    let b = selectedSquare + size.cols;
+    while (grid[t] != "." && t >= 0) {
+      highlightedSquares.push(t);
+      t -= size.cols;
+    }
+    while (grid[b] != "." && b >= 0 && b < grid.length) {
+      highlightedSquares.push(b);
+      b += size.cols;
+    }
+  }
+  let highlightedClueIndex = Math.min(...highlightedSquares);
+  let highlightedClueNumber =
+    highlightedClueIndex == -1 ? 1 : gridnums[highlightedClueIndex];
+
+  // test for accurate puzzle size?
+  const gridRows: Cell[][] = [];
+
+  for (let r = 0; r < size.rows; r++) {
+    let gridRow = [];
+    let chars = grid.slice(r * size.cols, (r + 1) * size.cols);
+    let nums = gridnums.slice(r * size.cols, (r + 1) * size.cols);
+
+    for (let c = 0; c < size.cols; c++) {
+      gridRow.push({
+        correctEntry: chars[c],
+        index: r * size.cols + c,
+        squareNumber: nums[c],
+        userEntry: "",
+      });
+    }
+
+    gridRows.push(gridRow);
+  }
+
+  const dim = 700;
+  const dimensions = {
+    w: dim,
+    h: dim,
+    padding: "10px",
+  };
+
+  return (
+    <Flex direction="column" justify="space-between" align="center">
+      <GameContext.Provider
+        value={{
+          isRevealed,
+          direction,
+          highlightedClueNumber,
+          highlightedSquares,
+          selectedSquare,
+          setSelectedSquare: (i) => setSelectedSquare(i),
+        }}
+      >
+        <HeaderSection author={author} date={date} title={title} />
+        <Flex
+          direction="row"
+          w="100%"
+          alignItems="center"
+          justifyContent="center"
+        >
+          <Button
+            w="15%"
+            background="gray"
+            margin={20}
+            padding={4}
+            onClick={() => setIsRevealed(!isRevealed)}
+          >
+            <Text>{isRevealed ? "Hide Answers" : "Show Answers"}</Text>
+          </Button>
+          <Button
+            w="15%"
+            background="gray"
+            margin={20}
+            padding={4}
+            onClick={() =>
+              setDirection(
+                direction === Direction.ACROSS
+                  ? Direction.DOWN
+                  : Direction.ACROSS,
+              )
+            }
+          >
+            <Text>{direction === Direction.ACROSS ? "Across" : "Down"}</Text>
+          </Button>
+        </Flex>
+        <Flex>
+          <Flex
+            {...dimensions}
+            borderWidth={theme.border.width}
+            borderColor={theme.color.foreground}
+          >
+            <Grid rows={gridRows} />
+          </Flex>
+          <Flex>
+            <Clues {...clues} />
+          </Flex>
+        </Flex>
+      </GameContext.Provider>
+    </Flex>
+  );
+}
 
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">src/app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
-
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-full sm:before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full sm:after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 before:lg:h-[360px] z-[-1]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Explore starter templates for Next.js.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50 text-balance`}>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
+    <main>
+      <Crossword />
     </main>
   );
 }
