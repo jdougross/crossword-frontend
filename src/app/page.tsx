@@ -10,7 +10,8 @@ import {
   List,
   Text,
 } from "@chakra-ui/react";
-import React, { createContext, useContext, useState } from "react";
+import next from "next";
+import React, { createContext, createRef, useContext, useState } from "react";
 
 enum Direction {
   ACROSS,
@@ -31,6 +32,7 @@ const theme = {
 interface Cell {
   correctEntry: string;
   index: number;
+  ref: React.RefObject<HTMLInputElement>;
   squareNumber: number;
   userEntry: string;
 }
@@ -52,21 +54,66 @@ interface SquareProps {
 }
 
 function Square({ cell }: SquareProps) {
-  const { isRevealed, highlightedSquares, selectedSquare, setSelectedSquare } =
-    useContext(GameContext);
-  const { correctEntry, index, squareNumber, userEntry } = cell;
+  const {
+    direction,
+    grid,
+    isRevealed,
+    highlightedSquares,
+    inputRefs,
+    selectedSquare,
+    setDirection,
+    setSelectedSquare,
+    size,
+  } = useContext(GameContext);
+  const { correctEntry, index, ref, squareNumber, userEntry } = cell;
 
   const [userValue, setUserValue] = useState(userEntry);
 
-  function handleInputChange(event: React.ChangeEvent<HTMLInputElement>) {
-    setUserValue(event.target.value.slice(-1).toUpperCase() || "");
+  function getNextIndex() {
+    let topOfClue = -1;
+    if (direction === Direction.DOWN) {
+      // normal down case, open square below
+      if (index + size.cols <= grid.length && grid[index + size.cols] != ".") {
+        return index + size.cols;
+      }
+
+      topOfClue = index;
+      while (topOfClue - size.cols >= 0 && grid[topOfClue] != ".") {
+        topOfClue -= size.cols;
+      }
+    }
+    let nextIndex = topOfClue === -1 ? index + 1 : topOfClue + 1;
+    // we're not finding the next DOWN clue very well here
+    while (grid[nextIndex] == ".") {
+      nextIndex++;
+    }
+
+    // if we finished the last clue, swap directions and go to the top
+    if (nextIndex >= grid.length) {
+      setDirection(
+        direction === Direction.ACROSS ? Direction.DOWN : Direction.ACROSS,
+      );
+      nextIndex = nextIndex % grid.length;
+    }
+
+    console.log(`NEXT INDEX: ${nextIndex}`);
+    return nextIndex;
   }
 
-  const backgroundColor =
-    // selectedSquare == index ? theme.color.highlight : theme.color.background;
-    highlightedSquares.includes(index)
-      ? theme.color.highlight
-      : theme.color.background;
+  function handleInputChange(event: React.ChangeEvent<HTMLInputElement>) {
+    setUserValue(event.target.value.slice(-1).toUpperCase() || "");
+    const nextIndex = getNextIndex();
+    // handle edge case of end of puzzle - go back and switch directions
+    setSelectedSquare(nextIndex);
+    inputRefs[index].current?.blur();
+    inputRefs[nextIndex].current?.focus();
+  }
+
+  const backgroundColor = highlightedSquares.includes(index)
+    ? selectedSquare === index
+      ? "#DF0"
+      : theme.color.highlight
+    : theme.color.background;
 
   return correctEntry == "." ? (
     <Blank />
@@ -96,10 +143,12 @@ function Square({ cell }: SquareProps) {
             backgroundColor={backgroundColor}
             textAlign={"center"}
             textColor={theme.color.foreground}
-            _focusVisible={{ outline: "none" }}
+            _focusVisible={{ outline: "none", caretColor: "transparent" }}
             value={userValue}
+            ref={ref}
             onChange={handleInputChange}
             onFocus={() => setSelectedSquare(index)}
+            autoFocus={selectedSquare === index}
           />
         )}
       </Flex>
@@ -207,10 +256,13 @@ function Clues({ across, down }: { across: string[]; down: string[] }) {
 const GameContext = createContext({
   isRevealed: false,
   direction: Direction.ACROSS,
-  gridnums: [] as Number[],
+  grid: [] as string[],
+  gridnums: [] as number[],
   highlightedClueNumber: 1,
-  highlightedSquares: [-1],
-  selectedSquare: -1,
+  highlightedSquares: [0],
+  inputRefs: [] as React.RefObject<HTMLInputElement>[],
+  size: { rows: 0, cols: 0 },
+  selectedSquare: 0,
   setDirection: (d: Direction) => {},
   setSelectedSquare: (i: number) => {},
 });
@@ -218,7 +270,7 @@ const GameContext = createContext({
 function Crossword() {
   const [isRevealed, setIsRevealed] = useState(false);
   const [direction, setDirection] = useState(Direction.ACROSS);
-  const [selectedSquare, setSelectedSquare] = useState(-1);
+  const [selectedSquare, setSelectedSquare] = useState(0);
 
   const { author, date, clues, grid, gridnums, size, title } = data;
 
@@ -253,6 +305,10 @@ function Crossword() {
 
   // test for accurate puzzle size?
   const gridRows: Cell[][] = [];
+  const inputRefs = Array.from(
+    { length: grid.length },
+    () => React.createRef() as React.RefObject<HTMLInputElement>,
+  );
 
   for (let r = 0; r < size.rows; r++) {
     let gridRow = [];
@@ -260,9 +316,11 @@ function Crossword() {
     let nums = gridnums.slice(r * size.cols, (r + 1) * size.cols);
 
     for (let c = 0; c < size.cols; c++) {
+      const index = r * size.cols + c;
       gridRow.push({
         correctEntry: chars[c],
-        index: r * size.cols + c,
+        index,
+        ref: inputRefs[index],
         squareNumber: nums[c],
         userEntry: "",
       });
@@ -284,10 +342,13 @@ function Crossword() {
         value={{
           isRevealed,
           direction,
+          grid,
           gridnums,
           highlightedClueNumber,
           highlightedSquares,
+          inputRefs,
           selectedSquare,
+          size,
           setDirection: (d) => setDirection(d),
           setSelectedSquare: (i) => setSelectedSquare(i),
         }}
