@@ -1,8 +1,8 @@
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { GameContext } from "./page";
 import { CellProps, Direction } from "./types";
 import { Box, Flex, Input, Text } from "@chakra-ui/react";
-import { theme } from "./utils";
+import { fullSize, theme } from "./utils";
 
 export function Blank() {
   return (
@@ -10,8 +10,7 @@ export function Blank() {
       borderWidth={theme.border.width}
       borderColor={theme.color.foreground}
       bg={theme.color.foreground}
-      w="100%"
-      h="100%"
+      {...fullSize}
     />
   );
 }
@@ -28,8 +27,8 @@ export function Cell({ row, col, index }: CellProps) {
     allAnswersRevealed,
     inputRefs,
 
-    setDirection,
     setSelectedSquare,
+    toggleDirection,
   } = useContext(GameContext);
 
   const [userValue, setUserValue] = useState("");
@@ -58,9 +57,7 @@ export function Cell({ row, col, index }: CellProps) {
 
     // if we finished the last clue, swap directions and go to the top
     if (nextIndex >= grid.length) {
-      setDirection(
-        direction === Direction.ACROSS ? Direction.DOWN : Direction.ACROSS,
-      );
+      toggleDirection();
       nextIndex = nextIndex % grid.length;
     }
 
@@ -68,6 +65,7 @@ export function Cell({ row, col, index }: CellProps) {
   }
 
   function handleInputChange(event: React.ChangeEvent<HTMLInputElement>) {
+    console.log(event.target.value);
     setUserValue(event.target.value.slice(-1).toUpperCase() || "");
     const nextIndex = getNextIndex();
     // handle edge case of end of puzzle - go back and switch directions
@@ -91,9 +89,8 @@ export function Cell({ row, col, index }: CellProps) {
       backgroundColor={backgroundColor}
       borderWidth={theme.border.width}
       borderColor={theme.color.foreground}
-      w="100%"
-      h="100%"
       direction="column"
+      {...fullSize}
     >
       <Box h={"20%"}>
         <Text
@@ -116,8 +113,8 @@ export function Cell({ row, col, index }: CellProps) {
             value={userValue}
             ref={inputRefs[index]}
             onChange={handleInputChange}
-            onFocus={() => setSelectedSquare(index)}
-            autoFocus={selectedSquare === index}
+            onClick={toggleDirection}
+            onFocus={() => selectedSquare != index && setSelectedSquare(index)}
           />
         )}
       </Flex>

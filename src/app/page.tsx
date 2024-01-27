@@ -1,11 +1,12 @@
 "use client";
 
 import data from "./data.json";
-import { Box, Button, Flex, List, Text } from "@chakra-ui/react";
+import { Box, Button, Flex, Text } from "@chakra-ui/react";
 import React, { createContext, createRef, useContext, useState } from "react";
 import { CellProps, ClueProps, Direction, GameContextType } from "./types";
-import { theme } from "./utils";
+import { fullSize, parseRawClue, theme } from "./utils";
 import { Cell } from "./Cell";
+import { Clues } from "./Clues";
 
 export const GameContext = createContext({} as GameContextType);
 
@@ -25,14 +26,10 @@ function Grid() {
       // more efficient to track activeClue AND activeSquare? is that redundant / complicated?
       row.push({
         index,
-        // row: r,
-        // col: c,
       });
     }
     cells.push(row);
   }
-
-  const fullSize = { w: "100%", h: "100%" };
 
   return (
     <Box bg={theme.color.background} {...fullSize}>
@@ -50,96 +47,50 @@ function Grid() {
   );
 }
 
-function Clue({ clue, direction }: { clue: string; direction: Direction }) {
-  const {
-    direction: contextDirection,
-    gridnums,
-    highlightedClueNumber,
-    setDirection,
-    setSelectedSquare,
-  } = useContext(GameContext);
-
-  const clueNumber = Number(clue.split(".")[0]);
-  const backgroundColor =
-    clueNumber == highlightedClueNumber && direction === contextDirection
-      ? theme.color.highlight
-      : theme.color.foreground; // weird theming... bg / fg should be different
-
-  function handleClick() {
-    setDirection(direction);
-    setSelectedSquare(gridnums.indexOf(clueNumber) || 0);
-  }
-
-  return (
-    <Text backgroundColor={backgroundColor} py={8} onClick={handleClick}>
-      {clue}
-    </Text>
-  );
-}
-
-function ClueList({
-  clues,
-  direction,
-}: {
-  clues: string[];
-  direction: Direction;
-}) {
-  return (
-    <List width={200} padding={10}>
-      {clues.map((clue) => (
-        <Clue clue={clue} direction={direction} key={clue} />
-      ))}
-    </List>
-  );
-}
-
-function Clues({ across, down }: { across: string[]; down: string[] }) {
-  return (
-    <Flex direction="row">
-      <ClueList clues={across} direction={Direction.ACROSS} />
-      <ClueList clues={down} direction={Direction.DOWN} />
-    </Flex>
-  );
-}
-
 function Crossword() {
   const [allAnswersRevealed, setAllAnswersRevealed] = useState(false);
   const [direction, setDirection] = useState(Direction.ACROSS);
   const [selectedSquare, setSelectedSquare] = useState(0);
 
-  const { clues, grid, gridnums, size } = data;
+  const { clues: rawClues, grid, gridnums, size } = data;
 
-  function deriveHighlightedSquares(): Array<number> {
-    let highlightedSquares: number[] = [selectedSquare];
+  function toggleDirection() {
+    setDirection(
+      direction === Direction.ACROSS ? Direction.DOWN : Direction.ACROSS,
+    );
+  }
 
-    if (direction === Direction.ACROSS) {
-      let l = selectedSquare - 1;
-      let r = selectedSquare + 1;
-      while (grid[l] != "." && l >= 0 && l % size.rows != size.cols - 1) {
-        highlightedSquares.push(l);
-        l--;
-      }
-      while (
-        grid[r] != "." &&
-        r >= 0 &&
-        r < grid.length &&
-        r % size.rows != 0
-      ) {
-        highlightedSquares.push(r);
-        r++;
-      }
-    } else {
-      let t = selectedSquare - size.cols;
-      let b = selectedSquare + size.cols;
-      while (grid[t] != "." && t >= 0) {
-        highlightedSquares.push(t);
-        t -= size.cols;
-      }
-      while (grid[b] != "." && b >= 0 && b < grid.length) {
-        highlightedSquares.push(b);
-        b += size.cols;
-      }
+  function deriveStartingIndexOfActiveClue() {
+    let index = selectedSquare;
+    let decrement = direction === Direction.ACROSS ? 1 : size.cols;
+
+    let testIndex = index - decrement;
+    while (
+      testIndex >= 0 &&
+      grid[testIndex] != "." &&
+      testIndex % size.cols <= index % size.cols
+    ) {
+      index = testIndex;
+      testIndex -= decrement;
     }
+
+    return index;
+  }
+
+  function deriveHighlightedSquares() {
+    const startIndex = deriveStartingIndexOfActiveClue();
+    const highlightedSquares = [];
+
+    let increment = direction === Direction.ACROSS ? 1 : size.cols;
+    let index = startIndex;
+
+    while (index < grid.length && grid[index] != ".") {
+      highlightedSquares.push(index);
+      if (direction == Direction.ACROSS && index % size.cols == size.cols - 1)
+        break;
+      index += increment;
+    }
+
     return highlightedSquares;
   }
 
@@ -152,6 +103,34 @@ function Crossword() {
 
   const highlightedSquares = deriveHighlightedSquares();
   const highlightedClueNumber = deriveHighlightedClueNumber(highlightedSquares);
+
+  const across: ClueProps[] = rawClues.across.map(
+    (clueString: string, cluesIndex) => {
+      const { number, text } = parseRawClue(clueString);
+      return {
+        cluesIndex,
+        direction: Direction.ACROSS,
+        number,
+        gridIndex: gridnums.indexOf(number),
+        text,
+      };
+    },
+  );
+
+  const down: ClueProps[] = rawClues.down.map(
+    (clueString: string, cluesIndex) => {
+      const { number, text } = parseRawClue(clueString);
+      return {
+        cluesIndex,
+        direction: Direction.DOWN,
+        number,
+        gridIndex: gridnums.indexOf(number),
+        text,
+      };
+    },
+  );
+
+  const clues = { across, down };
 
   // test for accurate puzzle size?
   const cells: CellProps[][] = [];
@@ -171,19 +150,49 @@ function Crossword() {
     allAnswersRevealed,
     direction,
     cells,
+    clues,
     grid,
     gridnums,
-    highlightedClueNumber: 1,
+    highlightedClueNumber,
     highlightedSquares,
     inputRefs,
     selectedSquare,
     size,
     setDirection: (d: Direction) => setDirection(d),
     setSelectedSquare: (i: number) => setSelectedSquare(i),
+    toggleDirection,
   };
 
+  // console.log(`Selected Square: ${selectedSquare}`)
+
+  function handleKeyboardEvents(event: any) {
+    // fix no explicit any
+    // console.log(event);
+    if (event?.code === "Backspace" || event?.code === "Delete") {
+      console.log(event?.code);
+      // should have a method for derive prev square basically.
+      // let prevSquare = (selectedSquare + grid.length - 1) % grid.length;
+      // setSelectedSquare(prevSquare);
+      // inputRefs[prevSquare].current?.focus();
+      // console.log(prevSquare)
+    }
+
+    if (event?.code && String(event?.code).includes("Arrow")) {
+      console.log(event.code);
+    }
+
+    if (event?.code && String(event?.code).includes("Tab")) {
+      event.shiftKey ? console.log("Shift Tab") : console.log("Tab");
+    }
+  }
+
   return (
-    <Flex direction="column" justify="space-between" align="center">
+    <Flex
+      direction="column"
+      justify="space-between"
+      align="center"
+      onKeyDown={handleKeyboardEvents}
+    >
       <GameContext.Provider value={contextValue}>
         {/* <HeaderSection author={author} date={date} title={title} /> */}
         <Flex
@@ -206,13 +215,7 @@ function Crossword() {
             background="gray"
             margin={20}
             padding={4}
-            onClick={() =>
-              setDirection(
-                direction === Direction.ACROSS
-                  ? Direction.DOWN
-                  : Direction.ACROSS,
-              )
-            }
+            onClick={toggleDirection}
           >
             <Text>{direction === Direction.ACROSS ? "Across" : "Down"}</Text>
           </Button>
@@ -222,7 +225,7 @@ function Crossword() {
             <Grid />
           </Flex>
           <Flex>
-            <Clues {...clues} />
+            <Clues />
           </Flex>
         </Flex>
       </GameContext.Provider>

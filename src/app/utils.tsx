@@ -11,6 +11,8 @@ export const theme = {
   },
 };
 
+export const fullSize = { w: "100%", h: "100%" };
+
 export function HeaderSection({
   author,
   date,
@@ -27,4 +29,11 @@ export function HeaderSection({
       {/* <Heading color={theme.color.background}>{`by ${author}`}</Heading> */}
     </Flex>
   );
+}
+
+export function parseRawClue(clueString: string) {
+  const dot = clueString.indexOf(".");
+  const number = Number(clueString.slice(0, dot));
+  const text = clueString.slice(dot + 1).trim();
+  return { number, text };
 }

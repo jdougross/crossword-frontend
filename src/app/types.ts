@@ -19,15 +19,19 @@ export interface Coordinate {
 }
 
 export interface ClueProps {
+  cluesIndex?: number;
+  direction: Direction;
   number: number;
-  clue: string;
-  startingCoordinate: Coordinate;
+  gridIndex: number;
+  startingCoordinate?: Coordinate;
+  text: string;
 }
 
 export interface GameContextType {
   allAnswersRevealed: boolean;
   direction: Direction;
   cells: CellProps[][];
+  clues: { across: ClueProps[]; down: ClueProps[] };
   grid: string[];
   gridnums: number[];
   highlightedClueNumber: number;
@@ -37,4 +41,5 @@ export interface GameContextType {
   size: { rows: number; cols: number };
   setDirection: (d: Direction) => void;
   setSelectedSquare: (i: number) => void;
+  toggleDirection: () => void;
 }
