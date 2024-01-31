@@ -104,6 +104,7 @@ function Crossword() {
   const highlightedSquares = deriveHighlightedSquares();
   const highlightedClueNumber = deriveHighlightedClueNumber(highlightedSquares);
 
+  // turn this into a formatting helper method
   const across: ClueProps[] = rawClues.across.map(
     (clueString: string, cluesIndex) => {
       const { number, text } = parseRawClue(clueString);
@@ -165,11 +166,48 @@ function Crossword() {
 
   // console.log(`Selected Square: ${selectedSquare}`)
 
+  function tabToNextOrPreviousClue(shiftKey: boolean) {
+    let activeClueList =
+      direction == Direction.ACROSS ? clues.across : clues.down;
+    let inactiveClueList =
+      direction == Direction.DOWN ? clues.across : clues.down;
+    let activeClueListIndex = activeClueList.findIndex(
+      (clue) => clue.number === highlightedClueNumber,
+    );
+    let nextIndex;
+    let shouldToggleDirection = false;
+
+    nextIndex =
+      activeClueList[activeClueListIndex + (shiftKey ? -1 : 1)]?.gridIndex || 0;
+
+    // handle TAB from end of grid
+    if (!shiftKey && activeClueListIndex == activeClueList.length - 1) {
+      nextIndex = inactiveClueList[0].gridIndex || 0;
+      shouldToggleDirection = true;
+    }
+
+    // handle SHIFT-TAB from start of grid
+    if (shiftKey && activeClueListIndex == 0) {
+      nextIndex = inactiveClueList.pop()?.gridIndex || 0;
+      shouldToggleDirection = true;
+    }
+
+    setSelectedSquare(nextIndex);
+    shouldToggleDirection && toggleDirection();
+  }
+
   function handleKeyboardEvents(event: any) {
+    const code = event?.code;
+    const shiftKey = event?.shiftKey;
+
+    if (!code) {
+      return;
+    }
+
     // fix no explicit any
     // console.log(event);
     if (event?.code === "Backspace" || event?.code === "Delete") {
-      console.log(event?.code);
+      // console.log(event?.code);
       // should have a method for derive prev square basically.
       // let prevSquare = (selectedSquare + grid.length - 1) % grid.length;
       // setSelectedSquare(prevSquare);
@@ -177,12 +215,17 @@ function Crossword() {
       // console.log(prevSquare)
     }
 
-    if (event?.code && String(event?.code).includes("Arrow")) {
-      console.log(event.code);
+    if (String(code).includes("Arrow")) {
+      // console.log(event.code);
+      ["ArrowLeft", "ArrowRight"].includes(code) &&
+        setDirection(Direction.ACROSS);
+      ["ArrowUp", "ArrowDown"].includes(code) && setDirection(Direction.DOWN);
     }
 
-    if (event?.code && String(event?.code).includes("Tab")) {
-      event.shiftKey ? console.log("Shift Tab") : console.log("Tab");
+    if (String(code).includes("Tab")) {
+      // note that on NYT, tab is necessary to get to next word... ?
+      // shiftKey ? console.log("Shift Tab") : console.log("Tab");
+      tabToNextOrPreviousClue(shiftKey);
     }
   }
 

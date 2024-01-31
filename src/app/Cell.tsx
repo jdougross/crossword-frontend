@@ -65,13 +65,26 @@ export function Cell({ row, col, index }: CellProps) {
   }
 
   function handleInputChange(event: React.ChangeEvent<HTMLInputElement>) {
-    console.log(event.target.value);
     setUserValue(event.target.value.slice(-1).toUpperCase() || "");
     const nextIndex = getNextIndex();
     // handle edge case of end of puzzle - go back and switch directions
     setSelectedSquare(nextIndex);
     inputRefs[index].current?.blur();
     inputRefs[nextIndex].current?.focus();
+  }
+
+  function handleClick() {
+    if (selectedSquare == index) {
+      toggleDirection();
+    } else {
+      setSelectedSquare(index);
+    }
+  }
+
+  function handleFocus() {
+    if (document.activeElement == inputRefs[index].current) {
+      return;
+    }
   }
 
   const cornerLabel = gridnums[index] != 0 ? gridnums[index] : "";
@@ -113,8 +126,9 @@ export function Cell({ row, col, index }: CellProps) {
             value={userValue}
             ref={inputRefs[index]}
             onChange={handleInputChange}
-            onClick={toggleDirection}
-            onFocus={() => selectedSquare != index && setSelectedSquare(index)}
+            onClick={handleClick}
+            autoFocus={selectedSquare == index}
+            // onFocus={handleFocus}
           />
         )}
       </Flex>
