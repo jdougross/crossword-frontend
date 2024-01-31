@@ -3,43 +3,39 @@
 import data from "./data.json";
 import { Box, Button, Flex, Text } from "@chakra-ui/react";
 import React, { createContext, createRef, useContext, useState } from "react";
-import { CellProps, ClueProps, Direction, GameContextType } from "./types";
-import { fullSize, parseRawClue, theme } from "./utils";
-import { Cell } from "./Cell";
-import { Clues } from "./Clues";
+import { Cell, Clue, Direction, GameContextType, GridProps } from "./types";
+import {
+  CrosswordProps,
+  fullSize,
+  parseRawClue,
+  theme,
+  transformData,
+} from "./utils";
+import { CellDisplay } from "./Cell";
+import { ClueLists } from "./Clues";
 
 export const GameContext = createContext({} as GameContextType);
 
-// maybe make this a child-agnostic layout?
-function Grid() {
-  const {
-    size: { rows, cols },
-  } = useContext(GameContext);
-
-  const cells: CellProps[][] = [];
-  for (let r = 0; r < rows; r++) {
-    let row: CellProps[] = [];
-    for (let c = 0; c < cols; c++) {
-      const index = r * cols + c;
-
-      // maybe add "nextIndex.Across / .Down to this object?"
-      // more efficient to track activeClue AND activeSquare? is that redundant / complicated?
-      row.push({
-        index,
-      });
-    }
-    cells.push(row);
-  }
+function GridDisplay({
+  size: { rows, cols },
+  data,
+  renderChildComponent,
+}: GridProps) {
+  const grid: Cell[][] = [...Array(rows).keys()].map((row) =>
+    [...Array(cols).keys()].map((col) => data[row * cols + col]),
+  );
 
   return (
     <Box bg={theme.color.background} {...fullSize}>
       <Flex {...fullSize} direction="column">
-        {" "}
-        {cells.map((row, indexR) => (
+        {grid.map((row, indexR) => (
           <Flex {...fullSize} key={`row-${indexR}`}>
-            {row.map((cell, indexC) => (
-              <Cell {...cell} key={`cell-${indexR}:${indexC}`} />
-            ))}
+            {row.map((element, indexC) =>
+              renderChildComponent({
+                props: element,
+                key: `cell-${indexR}:${indexC}`,
+              }),
+            )}
           </Flex>
         ))}
       </Flex>
@@ -47,12 +43,12 @@ function Grid() {
   );
 }
 
-function Crossword() {
+function Crossword(props: CrosswordProps) {
   const [allAnswersRevealed, setAllAnswersRevealed] = useState(false);
   const [direction, setDirection] = useState(Direction.ACROSS);
   const [selectedSquare, setSelectedSquare] = useState(0);
 
-  const { clues: rawClues, grid, gridnums, size } = data;
+  const { cells, clues, grid, gridnums, inputRefs, size } = props;
 
   function toggleDirection() {
     setDirection(
@@ -103,42 +99,6 @@ function Crossword() {
 
   const highlightedSquares = deriveHighlightedSquares();
   const highlightedClueNumber = deriveHighlightedClueNumber(highlightedSquares);
-
-  // turn this into a formatting helper method
-  const across: ClueProps[] = rawClues.across.map(
-    (clueString: string, cluesIndex) => {
-      const { number, text } = parseRawClue(clueString);
-      return {
-        cluesIndex,
-        direction: Direction.ACROSS,
-        number,
-        gridIndex: gridnums.indexOf(number),
-        text,
-      };
-    },
-  );
-
-  const down: ClueProps[] = rawClues.down.map(
-    (clueString: string, cluesIndex) => {
-      const { number, text } = parseRawClue(clueString);
-      return {
-        cluesIndex,
-        direction: Direction.DOWN,
-        number,
-        gridIndex: gridnums.indexOf(number),
-        text,
-      };
-    },
-  );
-
-  const clues = { across, down };
-
-  // test for accurate puzzle size?
-  const cells: CellProps[][] = [];
-  const inputRefs = Array.from(
-    { length: grid.length },
-    () => React.createRef() as React.RefObject<HTMLInputElement>,
-  );
 
   const dim = 600;
   const dimensions = {
@@ -260,15 +220,27 @@ function Crossword() {
             padding={4}
             onClick={toggleDirection}
           >
-            <Text>{direction === Direction.ACROSS ? "Across" : "Down"}</Text>
+            <Text>{direction}</Text>
           </Button>
         </Flex>
         <Flex>
           <Flex {...dimensions}>
-            <Grid />
+            <GridDisplay
+              size={size}
+              data={cells}
+              renderChildComponent={({
+                props,
+                key,
+              }: {
+                props: Cell;
+                key: string;
+              }) => {
+                return <CellDisplay {...props} key={key} />;
+              }}
+            />
           </Flex>
           <Flex>
-            <Clues />
+            <ClueLists />
           </Flex>
         </Flex>
       </GameContext.Provider>
@@ -277,9 +249,11 @@ function Crossword() {
 }
 
 export default function Home() {
+  const crosswordProps = transformData(data);
+
   return (
     <main>
-      <Crossword />
+      <Crossword {...crosswordProps} />
     </main>
   );
 }

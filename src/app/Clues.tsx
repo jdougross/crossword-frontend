@@ -1,16 +1,16 @@
 import { useContext } from "react";
-import { ClueProps, Direction } from "./types";
+import { Clue, Direction } from "./types";
 import { GameContext } from "./page";
 import { theme } from "./utils";
 import { Flex, List, Text } from "@chakra-ui/react";
 
-function Clue({
+function ClueDisplay({
   cluesIndex,
   direction: propDirection,
   number,
   gridIndex,
   text,
-}: ClueProps) {
+}: Clue) {
   const {
     clues,
     direction: contextDirection,
@@ -39,7 +39,7 @@ function Clue({
   );
 }
 
-export function Clues() {
+export function ClueLists() {
   const {
     clues: { across, down },
   } = useContext(GameContext);
@@ -49,7 +49,7 @@ export function Clues() {
       {[across, down].map((list, listIndex) => (
         <List width={200} padding={10} key={`list-${listIndex}`}>
           {list.map((clue, index) => (
-            <Clue {...clue} key={`clue-${index}`} />
+            <ClueDisplay {...clue} key={`clue-${index}`} />
           ))}
         </List>
       ))}

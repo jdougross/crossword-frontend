@@ -1,9 +1,14 @@
+// export enum Direction {
+//   ACROSS,
+//   DOWN,
+// }
+
 export enum Direction {
-  ACROSS,
-  DOWN,
+  ACROSS = "across",
+  DOWN = "down",
 }
 
-export interface CellProps {
+export interface Cell {
   index: number;
   row?: number;
   col?: number;
@@ -18,7 +23,7 @@ export interface Coordinate {
   col: number;
 }
 
-export interface ClueProps {
+export interface Clue {
   cluesIndex?: number;
   direction: Direction;
   number: number;
@@ -30,8 +35,8 @@ export interface ClueProps {
 export interface GameContextType {
   allAnswersRevealed: boolean;
   direction: Direction;
-  cells: CellProps[][];
-  clues: { across: ClueProps[]; down: ClueProps[] };
+  cells: Cell[];
+  clues: { across: Clue[]; down: Clue[] };
   grid: string[];
   gridnums: number[];
   highlightedClueNumber: number;
@@ -42,4 +47,16 @@ export interface GameContextType {
   setDirection: (d: Direction) => void;
   setSelectedSquare: (i: number) => void;
   toggleDirection: () => void;
+}
+
+export interface GridProps {
+  size: { rows: number; cols: number };
+  data: any[]; // this is a 1d array of grid-element props
+  renderChildComponent: ({
+    props,
+    key,
+  }: {
+    props: any;
+    key: string;
+  }) => JSX.Element;
 }

@@ -1,6 +1,6 @@
 import { useContext, useEffect, useState } from "react";
 import { GameContext } from "./page";
-import { CellProps, Direction } from "./types";
+import { Cell, Direction } from "./types";
 import { Box, Flex, Input, Text } from "@chakra-ui/react";
 import { fullSize, theme } from "./utils";
 
@@ -15,7 +15,7 @@ export function Blank() {
   );
 }
 
-export function Cell({ row, col, index }: CellProps) {
+export function CellDisplay({ row, col, index }: Cell) {
   const {
     grid,
     gridnums,
