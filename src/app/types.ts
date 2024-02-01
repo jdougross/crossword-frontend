@@ -9,6 +9,10 @@ export enum Direction {
 }
 
 export interface Cell {
+  clues: {
+    across: number;
+    down: number;
+  };
   index: number;
   row?: number;
   col?: number;
@@ -24,12 +28,49 @@ export interface Coordinate {
 }
 
 export interface Clue {
-  cluesIndex?: number;
+  cells: number[];
+  cluesIndex: number;
   direction: Direction;
   number: number;
   gridIndex: number;
   startingCoordinate?: Coordinate;
   text: string;
+}
+
+export interface CrosswordInputObject {
+  author: string;
+  clues: {
+    across: string[];
+    down: string[];
+  };
+  date: string;
+  dow: string; // should this be a day-of-week enum?
+  grid: string[];
+  gridnums: number[];
+  size: {
+    rows: number;
+    cols: number;
+  };
+  title: string;
+}
+
+export interface CrosswordProps {
+  author: string;
+  cells: Cell[];
+  clues: {
+    across: Clue[];
+    down: Clue[];
+  };
+  date: string;
+  dow: string; // should this be a day-of-week enum?
+  grid: string[];
+  gridnums: number[];
+  inputRefs: React.RefObject<HTMLInputElement>[];
+  size: {
+    rows: number;
+    cols: number;
+  };
+  title: string;
 }
 
 export interface GameContextType {

@@ -2,15 +2,15 @@
 
 import data from "./data.json";
 import { Box, Button, Flex, Text } from "@chakra-ui/react";
-import React, { createContext, createRef, useContext, useState } from "react";
-import { Cell, Clue, Direction, GameContextType, GridProps } from "./types";
+import React, { createContext, useState } from "react";
 import {
+  Cell,
   CrosswordProps,
-  fullSize,
-  parseRawClue,
-  theme,
-  transformData,
-} from "./utils";
+  Direction,
+  GameContextType,
+  GridProps,
+} from "./types";
+import { fullSize, theme, transformData } from "./utils";
 import { CellDisplay } from "./Cell";
 import { ClueLists } from "./Clues";
 
@@ -124,7 +124,7 @@ function Crossword(props: CrosswordProps) {
     toggleDirection,
   };
 
-  // console.log(`Selected Square: ${selectedSquare}`)
+  console.log(`Selected Square: ${selectedSquare}`);
 
   function tabToNextOrPreviousClue(shiftKey: boolean) {
     let activeClueList =
@@ -189,6 +189,10 @@ function Crossword(props: CrosswordProps) {
     }
   }
 
+  function renderCell({ props, key }: { props: Cell; key: string }) {
+    return <CellDisplay {...props} key={key} />;
+  }
+
   return (
     <Flex
       direction="column"
@@ -228,15 +232,7 @@ function Crossword(props: CrosswordProps) {
             <GridDisplay
               size={size}
               data={cells}
-              renderChildComponent={({
-                props,
-                key,
-              }: {
-                props: Cell;
-                key: string;
-              }) => {
-                return <CellDisplay {...props} key={key} />;
-              }}
+              renderChildComponent={renderCell}
             />
           </Flex>
           <Flex>
