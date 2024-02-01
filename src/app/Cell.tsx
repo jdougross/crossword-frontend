@@ -15,7 +15,7 @@ export function Blank() {
   );
 }
 
-export function CellDisplay({ row, col, index }: Cell) {
+export function CellDisplay({ index }: Cell) {
   const {
     grid,
     gridnums,
@@ -29,9 +29,13 @@ export function CellDisplay({ row, col, index }: Cell) {
 
     setSelectedSquare,
     toggleDirection,
+    updateUserInput,
+    userInputs,
   } = useContext(GameContext);
 
-  const [userValue, setUserValue] = useState("");
+  // const [userValue, setUserValue] = useState("");
+  // const [userValue, setUserValue] = useState(userInputs[index]);
+  const userValue = userInputs[index];
 
   // should there be a nextIndex: { across: number, down: number }
   // property on each cell, rather than recompute so much?
@@ -65,7 +69,10 @@ export function CellDisplay({ row, col, index }: Cell) {
   }
 
   function handleInputChange(event: React.ChangeEvent<HTMLInputElement>) {
-    setUserValue(event.target.value.slice(-1).toUpperCase() || "");
+    const newValue = event.target.value.slice(-1).toUpperCase() || "";
+    updateUserInput(index, newValue);
+    // setUserValue(newValue);
+    // setUserValue(event.target.value.slice(-1).toUpperCase() || "");
     const nextIndex = getNextIndex();
     // handle edge case of end of puzzle - go back and switch directions
     setSelectedSquare(nextIndex);

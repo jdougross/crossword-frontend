@@ -1,13 +1,13 @@
 import { useContext } from "react";
-import { Clue, Direction } from "./types";
+import { Clue } from "./types";
 import { GameContext } from "./page";
 import { theme } from "./utils";
 import { Flex, List, Text } from "@chakra-ui/react";
 
 function ClueDisplay({
-  cluesIndex,
+  // clueListIndex,
   direction: propDirection,
-  number,
+  clueNumber,
   gridIndex,
   text,
 }: Clue) {
@@ -22,7 +22,7 @@ function ClueDisplay({
   } = useContext(GameContext);
 
   const backgroundColor =
-    number == highlightedClueNumber && propDirection === contextDirection
+    clueNumber == highlightedClueNumber && propDirection === contextDirection
       ? theme.color.highlight
       : theme.color.foreground; // weird theming... bg / fg should be different
 
@@ -34,7 +34,7 @@ function ClueDisplay({
 
   return (
     <Text backgroundColor={backgroundColor} py={8} onClick={handleClick}>
-      {`${number}. ${text}`}
+      {`${clueNumber}. ${text}`}
     </Text>
   );
 }

@@ -41,9 +41,9 @@ export function HeaderSection({
 
 export function parseRawClue(clueString: string) {
   const dot = clueString.indexOf(".");
-  const number = Number(clueString.slice(0, dot));
+  const clueNumber = Number(clueString.slice(0, dot));
   const text = clueString.slice(dot + 1).trim();
-  return { number, text };
+  return { clueNumber, text };
 }
 
 export function transformData(input: CrosswordInputObject): CrosswordProps {
@@ -97,32 +97,84 @@ export function transformData(input: CrosswordInputObject): CrosswordProps {
     return { across: acrossClueNumber, down: downClueNumber };
   });
 
+  // should these be [] or Record<number, Clue> with a pointer to next / prev?
+  // depends on how ClueToIndex is structured, right?
   const across: Clue[] = rawClues.across.map(
-    (clueString: string, cluesIndex) => {
-      const { number, text } = parseRawClue(clueString);
-      return {
-        cells: clueToIndex.across[number].sort((a, b) => a - b),
-        cluesIndex,
+    (clueString: string, clueListIndex) => {
+      const { clueNumber, text } = parseRawClue(clueString);
+
+      const nextClue = {
+        clueListIndex: clueListIndex + 1,
         direction: Direction.ACROSS,
-        number,
-        gridIndex: gridnums.indexOf(number),
+      };
+
+      if (clueListIndex >= rawClues.across.length - 1) {
+        nextClue.clueListIndex = 0;
+        nextClue.direction = Direction.DOWN;
+      }
+
+      const prevClue = {
+        clueListIndex: clueListIndex - 1,
+        direction: Direction.ACROSS,
+      };
+
+      if (clueListIndex <= 0) {
+        prevClue.clueListIndex = rawClues.down.length - 1;
+        prevClue.direction = Direction.DOWN;
+      }
+
+      return {
+        cells: clueToIndex.across[clueNumber].sort((a, b) => a - b),
+        clueListIndex,
+        clueNumber,
+        direction: Direction.ACROSS,
+        nextClue,
+        prevClue,
+        gridIndex: gridnums.indexOf(clueNumber),
         text,
       };
     },
   );
 
-  const down: Clue[] = rawClues.down.map((clueString: string, cluesIndex) => {
-    const { number, text } = parseRawClue(clueString);
-    return {
-      cells: clueToIndex.down[number].sort((a, b) => a - b),
-      cluesIndex,
-      direction: Direction.DOWN,
-      number,
-      gridIndex: gridnums.indexOf(number),
-      text,
-    };
-  });
+  // should these be [] or Record<number, Clue> with a pointer to next / prev?
+  const down: Clue[] = rawClues.down.map(
+    (clueString: string, clueListIndex) => {
+      const { clueNumber, text } = parseRawClue(clueString);
 
+      const nextClue = {
+        clueListIndex: clueListIndex + 1,
+        direction: Direction.DOWN,
+      };
+
+      if (clueListIndex >= rawClues.down.length - 1) {
+        nextClue.clueListIndex = 0;
+        nextClue.direction = Direction.ACROSS;
+      }
+
+      const prevClue = {
+        clueListIndex: clueListIndex - 1,
+        direction: Direction.DOWN,
+      };
+
+      if (clueListIndex <= 0) {
+        prevClue.clueListIndex = rawClues.across.length - 1;
+        prevClue.direction = Direction.ACROSS;
+      }
+
+      return {
+        cells: clueToIndex.down[clueNumber].sort((a, b) => a - b),
+        clueListIndex,
+        clueNumber,
+        direction: Direction.DOWN,
+        nextClue,
+        prevClue,
+        gridIndex: gridnums.indexOf(clueNumber),
+        text,
+      };
+    },
+  );
+
+  // add these into cell props
   const nextSquareAcross = grid.map((g, i) => {
     if (grid[i] === ".") {
       return -1;
@@ -137,47 +189,78 @@ export function transformData(input: CrosswordInputObject): CrosswordProps {
     return nextIndex;
   });
 
+  const prevSquareAcross = Array(grid.length);
+  nextSquareAcross.forEach((n, i) => {
+    if (n === -1) {
+      prevSquareAcross[i] = -1;
+    } else {
+      nextSquareAcross[n] = i;
+    }
+  });
+
+  // add these into cell props
   const nextSquareDown = grid.map((g, i) => {
     if (grid[i] === ".") {
       return -1;
     }
     let nextIndex = i + cols;
 
+    // SOMETHING WRONG HERE - not progressing to next dwn cluetemp
+
     if (!grid[nextIndex] || grid[nextIndex] === ".") {
       // get starting index of next clue
       const currentClue = down.find(
-        (clue) => clue.number === indexToClue[i].down,
+        (clue) => clue.clueNumber === indexToClue[i].down,
       );
 
       if (
         !currentClue || // if something went wrong with find
-        !currentClue.cluesIndex || // if optional cluesIndex not populated
-        currentClue.cluesIndex + 1 == down.length // if last clue in the array
+        !currentClue.clueListIndex || // if optional clueListIndex not populated
+        currentClue.clueListIndex + 1 == down.length // if last clue in the array
       ) {
         return 0;
       }
 
-      return down[currentClue.cluesIndex + 1].gridIndex;
+      return down[currentClue.clueListIndex + 1].gridIndex;
     }
 
     return nextIndex;
   });
 
-  for (let r = 0; r < rows; r++) {
-    console.log(nextSquareDown.slice(cols * r, cols * (r + 1)));
-  }
+  // for (let r = 0; r < rows; r++) {
+  //   console.log(nextSquareAcross.slice(cols * r, cols * (r + 1)));
+  // }
 
   const inputRefs = Array.from(
     { length: grid.length },
     () => React.createRef() as React.RefObject<HTMLInputElement>,
   );
 
+  const userInputs = Array.from(
+    { length: grid.length },
+    () => React.createRef() as React.RefObject<string>,
+  );
+
   const cells = grid.map((c, i) => {
     // this is silly
     // maybe add "nextIndex.Across / .Down to this object?"
     // more efficient to track activeClue AND activeSquare? is that redundant / complicated?
-    return { index: i, clues: indexToClue[i] };
+    return {
+      index: i,
+      clues: indexToClue[i],
+      nextIndex: {
+        across: nextSquareAcross[i],
+        down: nextSquareDown[i],
+      },
+      prevIndex: {
+        across: 0,
+        down: 0,
+      },
+    };
   });
+
+  const initialGrid = grid.map((g) => (g === "." ? g : "")); // BLANK GRID with "." prefilled
+  // const initialGrid = grid.slice(); initialGrid[0] = ""; // one-away from correct, for testing
 
   return {
     author,
@@ -185,6 +268,7 @@ export function transformData(input: CrosswordInputObject): CrosswordProps {
     dow,
     grid,
     gridnums,
+    initialGrid,
     inputRefs,
     cells,
     clues: { across, down },

@@ -1,8 +1,3 @@
-// export enum Direction {
-//   ACROSS,
-//   DOWN,
-// }
-
 export enum Direction {
   ACROSS = "across",
   DOWN = "down",
@@ -14,26 +9,24 @@ export interface Cell {
     down: number;
   };
   index: number;
-  row?: number;
-  col?: number;
-  // ref: React.RefObject<HTMLInputElement>;
-  // cornerLabel: number;
-  // correctEntry: string;
-  // userEntry: string;
-}
-
-export interface Coordinate {
-  row: number;
-  col: number;
+  nextIndex: Record<Direction, number>;
+  prevIndex: Record<Direction, number>;
 }
 
 export interface Clue {
   cells: number[];
-  cluesIndex: number;
+  clueListIndex: number;
+  clueNumber: number;
   direction: Direction;
-  number: number;
   gridIndex: number;
-  startingCoordinate?: Coordinate;
+  nextClue: {
+    clueListIndex: number;
+    direction: Direction;
+  };
+  prevClue: {
+    clueListIndex: number;
+    direction: Direction;
+  };
   text: string;
 }
 
@@ -65,6 +58,7 @@ export interface CrosswordProps {
   dow: string; // should this be a day-of-week enum?
   grid: string[];
   gridnums: number[];
+  initialGrid: string[];
   inputRefs: React.RefObject<HTMLInputElement>[];
   size: {
     rows: number;
@@ -88,6 +82,8 @@ export interface GameContextType {
   setDirection: (d: Direction) => void;
   setSelectedSquare: (i: number) => void;
   toggleDirection: () => void;
+  updateUserInput: (i: number, v: string) => void;
+  userInputs: string[];
 }
 
 export interface GridProps {

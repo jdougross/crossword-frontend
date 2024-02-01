@@ -1,54 +1,43 @@
 "use client";
 
 import data from "./data.json";
-import { Box, Button, Flex, Text } from "@chakra-ui/react";
+import { Button, Flex, Text } from "@chakra-ui/react";
 import React, { createContext, useState } from "react";
 import {
   Cell,
+  Clue,
   CrosswordProps,
   Direction,
   GameContextType,
-  GridProps,
 } from "./types";
-import { fullSize, theme, transformData } from "./utils";
+import { transformData } from "./utils";
 import { CellDisplay } from "./Cell";
 import { ClueLists } from "./Clues";
+import { GridDisplay } from "./GridDisplay";
 
 export const GameContext = createContext({} as GameContextType);
 
-function GridDisplay({
-  size: { rows, cols },
-  data,
-  renderChildComponent,
-}: GridProps) {
-  const grid: Cell[][] = [...Array(rows).keys()].map((row) =>
-    [...Array(cols).keys()].map((col) => data[row * cols + col]),
-  );
-
-  return (
-    <Box bg={theme.color.background} {...fullSize}>
-      <Flex {...fullSize} direction="column">
-        {grid.map((row, indexR) => (
-          <Flex {...fullSize} key={`row-${indexR}`}>
-            {row.map((element, indexC) =>
-              renderChildComponent({
-                props: element,
-                key: `cell-${indexR}:${indexC}`,
-              }),
-            )}
-          </Flex>
-        ))}
-      </Flex>
-    </Box>
-  );
-}
-
 function Crossword(props: CrosswordProps) {
+  const { cells, clues, grid, gridnums, initialGrid, inputRefs, size } = props;
+
   const [allAnswersRevealed, setAllAnswersRevealed] = useState(false);
   const [direction, setDirection] = useState(Direction.ACROSS);
   const [selectedSquare, setSelectedSquare] = useState(0);
+  const [userInputs, setUserInputs] = useState(initialGrid);
 
-  const { cells, clues, grid, gridnums, inputRefs, size } = props;
+  // checking for wins on every grid change
+  const res = checkGrid();
+  res && console.log("CONGRATULATIONS");
+
+  function checkGrid() {
+    return grid.every((g, i) => grid[i] === userInputs[i] || g === ".");
+  }
+
+  function updateUserInput(index: number, value: string) {
+    let temp = userInputs;
+    temp[index] = value;
+    setUserInputs(temp);
+  }
 
   function toggleDirection() {
     setDirection(
@@ -56,49 +45,14 @@ function Crossword(props: CrosswordProps) {
     );
   }
 
-  function deriveStartingIndexOfActiveClue() {
-    let index = selectedSquare;
-    let decrement = direction === Direction.ACROSS ? 1 : size.cols;
-
-    let testIndex = index - decrement;
-    while (
-      testIndex >= 0 &&
-      grid[testIndex] != "." &&
-      testIndex % size.cols <= index % size.cols
-    ) {
-      index = testIndex;
-      testIndex -= decrement;
-    }
-
-    return index;
-  }
-
-  function deriveHighlightedSquares() {
-    const startIndex = deriveStartingIndexOfActiveClue();
-    const highlightedSquares = [];
-
-    let increment = direction === Direction.ACROSS ? 1 : size.cols;
-    let index = startIndex;
-
-    while (index < grid.length && grid[index] != ".") {
-      highlightedSquares.push(index);
-      if (direction == Direction.ACROSS && index % size.cols == size.cols - 1)
-        break;
-      index += increment;
-    }
-
-    return highlightedSquares;
-  }
-
-  function deriveHighlightedClueNumber(highlighted: Array<number>) {
-    let highlightedClueIndex = Math.min(...highlighted);
-    let highlightedClueNumber =
-      highlightedClueIndex == -1 ? 1 : gridnums[highlightedClueIndex];
-    return highlightedClueNumber;
-  }
-
-  const highlightedSquares = deriveHighlightedSquares();
-  const highlightedClueNumber = deriveHighlightedClueNumber(highlightedSquares);
+  const highlightedClueNumber = cells[selectedSquare].clues[direction];
+  const highlightedClue =
+    clues[direction].find(
+      (clue) => clue.clueNumber === highlightedClueNumber,
+    ) || ({} as Clue);
+  const highlightedSquares = highlightedClue
+    ? highlightedClue.cells
+    : [selectedSquare];
 
   const dim = 600;
   const dimensions = {
@@ -122,38 +76,23 @@ function Crossword(props: CrosswordProps) {
     setDirection: (d: Direction) => setDirection(d),
     setSelectedSquare: (i: number) => setSelectedSquare(i),
     toggleDirection,
+    updateUserInput,
+    userInputs,
   };
 
-  console.log(`Selected Square: ${selectedSquare}`);
+  // console.log(`Selected Square: ${selectedSquare}`);
+  // console.log(userInputs);
 
   function tabToNextOrPreviousClue(shiftKey: boolean) {
-    let activeClueList =
-      direction == Direction.ACROSS ? clues.across : clues.down;
-    let inactiveClueList =
-      direction == Direction.DOWN ? clues.across : clues.down;
-    let activeClueListIndex = activeClueList.findIndex(
-      (clue) => clue.number === highlightedClueNumber,
-    );
-    let nextIndex;
-    let shouldToggleDirection = false;
+    const newCluePointer = shiftKey
+      ? highlightedClue.prevClue
+      : highlightedClue.nextClue;
+    const { clueListIndex: newClueListIndex, direction: newDirection } =
+      newCluePointer;
+    const newGridIndex = clues[newDirection][newClueListIndex].gridIndex;
 
-    nextIndex =
-      activeClueList[activeClueListIndex + (shiftKey ? -1 : 1)]?.gridIndex || 0;
-
-    // handle TAB from end of grid
-    if (!shiftKey && activeClueListIndex == activeClueList.length - 1) {
-      nextIndex = inactiveClueList[0].gridIndex || 0;
-      shouldToggleDirection = true;
-    }
-
-    // handle SHIFT-TAB from start of grid
-    if (shiftKey && activeClueListIndex == 0) {
-      nextIndex = inactiveClueList.pop()?.gridIndex || 0;
-      shouldToggleDirection = true;
-    }
-
-    setSelectedSquare(nextIndex);
-    shouldToggleDirection && toggleDirection();
+    direction != newDirection && toggleDirection();
+    setSelectedSquare(newGridIndex);
   }
 
   function handleKeyboardEvents(event: any) {
@@ -164,10 +103,7 @@ function Crossword(props: CrosswordProps) {
       return;
     }
 
-    // fix no explicit any
-    // console.log(event);
     if (event?.code === "Backspace" || event?.code === "Delete") {
-      // console.log(event?.code);
       // should have a method for derive prev square basically.
       // let prevSquare = (selectedSquare + grid.length - 1) % grid.length;
       // setSelectedSquare(prevSquare);
@@ -176,7 +112,6 @@ function Crossword(props: CrosswordProps) {
     }
 
     if (String(code).includes("Arrow")) {
-      // console.log(event.code);
       ["ArrowLeft", "ArrowRight"].includes(code) &&
         setDirection(Direction.ACROSS);
       ["ArrowUp", "ArrowDown"].includes(code) && setDirection(Direction.DOWN);
@@ -184,7 +119,6 @@ function Crossword(props: CrosswordProps) {
 
     if (String(code).includes("Tab")) {
       // note that on NYT, tab is necessary to get to next word... ?
-      // shiftKey ? console.log("Shift Tab") : console.log("Tab");
       tabToNextOrPreviousClue(shiftKey);
     }
   }
