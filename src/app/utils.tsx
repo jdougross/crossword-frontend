@@ -235,6 +235,17 @@ export function transformData(input: CrosswordInputObject): CrosswordProps {
     () => React.createRef() as React.RefObject<HTMLInputElement>,
   );
 
+  const clueListRefs = {
+    across: Array.from(
+      { length: across.length },
+      () => React.createRef() as React.RefObject<HTMLParagraphElement>,
+    ),
+    down: Array.from(
+      { length: down.length },
+      () => React.createRef() as React.RefObject<HTMLParagraphElement>,
+    ),
+  };
+
   const cells = grid.map((c, i) => {
     // this is silly
     // maybe add "nextIndex.Across / .Down to this object?"
@@ -266,6 +277,7 @@ export function transformData(input: CrosswordInputObject): CrosswordProps {
     initialGrid,
     inputRefs,
     cells,
+    clueListRefs,
     clues: { across, down },
     size: { rows, cols },
     title,

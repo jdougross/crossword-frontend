@@ -23,10 +23,12 @@ export interface Clue {
     clueListIndex: number;
     direction: Direction;
   };
+  onClick?: () => void;
   prevClue: {
     clueListIndex: number;
     direction: Direction;
   };
+  ref?: React.RefObject<any>;
   text: string;
 }
 
@@ -50,6 +52,10 @@ export interface CrosswordInputObject {
 export interface CrosswordProps {
   author: string;
   cells: Cell[];
+  clueListRefs: {
+    across: React.RefObject<HTMLParagraphElement>[];
+    down: React.RefObject<HTMLParagraphElement>[];
+  };
   clues: {
     across: Clue[];
     down: Clue[];
@@ -71,6 +77,10 @@ export interface GameContextType {
   allAnswersRevealed: boolean;
   direction: Direction;
   cells: Cell[];
+  clueListRefs: {
+    across: React.RefObject<HTMLParagraphElement>[];
+    down: React.RefObject<HTMLParagraphElement>[];
+  };
   clues: { across: Clue[]; down: Clue[] };
   grid: string[];
   gridnums: number[];

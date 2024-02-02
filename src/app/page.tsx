@@ -18,7 +18,16 @@ import { GridDisplay } from "./GridDisplay";
 export const GameContext = createContext({} as GameContextType);
 
 function Crossword(props: CrosswordProps) {
-  const { cells, clues, grid, gridnums, initialGrid, inputRefs, size } = props;
+  const {
+    cells,
+    clues,
+    clueListRefs,
+    grid,
+    gridnums,
+    initialGrid,
+    inputRefs,
+    size,
+  } = props;
 
   const [allAnswersRevealed, setAllAnswersRevealed] = useState(false);
   const [direction, setDirection] = useState(Direction.ACROSS);
@@ -45,6 +54,11 @@ function Crossword(props: CrosswordProps) {
     );
   }
 
+  function selectSquare(i: number) {
+    inputRefs[i].current?.focus();
+    setSelectedSquare(i);
+  }
+
   const highlightedClueNumber = cells[selectedSquare].clues[direction];
   const highlightedClue =
     clues[direction].find(
@@ -54,6 +68,10 @@ function Crossword(props: CrosswordProps) {
     ? highlightedClue.cells
     : [selectedSquare];
 
+  // scroll the active clue to the top of its list
+  const clueListRef = clueListRefs[direction][highlightedClue.clueListIndex];
+  clueListRef?.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+
   const dim = 600;
   const dimensions = {
     w: dim,
@@ -61,15 +79,11 @@ function Crossword(props: CrosswordProps) {
     padding: "10px",
   };
 
-  function selectSquare(i: number) {
-    inputRefs[i].current?.focus();
-    setSelectedSquare(i);
-  }
-
   const contextValue = {
     allAnswersRevealed,
     direction,
     cells,
+    clueListRefs,
     clues,
     grid,
     gridnums,

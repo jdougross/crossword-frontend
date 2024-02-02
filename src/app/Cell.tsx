@@ -15,11 +15,12 @@ export function Blank() {
   );
 }
 
-export function CellDisplay({ index, nextIndex }: Cell) {
+export function CellDisplay({ clues: linkedClues, index, nextIndex }: Cell) {
   const {
     grid,
     gridnums,
-    // clues,
+    clueListRefs,
+    clues,
     size,
     direction,
     highlightedSquares,
@@ -73,11 +74,8 @@ export function CellDisplay({ index, nextIndex }: Cell) {
   }
 
   function handleClick() {
-    if (selectedSquare == index) {
-      toggleDirection();
-    } else {
-      selectSquare(index);
-    }
+    selectedSquare === index && toggleDirection();
+    selectSquare(index);
   }
 
   function ignoreTab(event: any) {
