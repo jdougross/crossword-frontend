@@ -26,6 +26,11 @@ export function ClueDisplay({
       ? theme.color.highlight
       : theme.color.foreground; // weird theming... bg / fg should be different
 
+  const textColor =
+    clueNumber == highlightedClueNumber && propDirection === contextDirection
+      ? theme.color.foreground
+      : theme.color.background;
+
   function handleClick() {
     setDirection(propDirection);
     selectSquare(gridIndex);
@@ -34,6 +39,7 @@ export function ClueDisplay({
   return (
     <Text
       backgroundColor={backgroundColor}
+      textColor={textColor}
       py={8}
       onClick={handleClick}
       ref={ref}

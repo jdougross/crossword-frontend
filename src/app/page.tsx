@@ -181,13 +181,14 @@ function Crossword(props: CrosswordProps) {
           </Button>
         </Flex>
         <Flex>
-          <Flex direction="column" alignItems="center">
+          <Flex direction="column" alignItems="center" w={dimensions.w}>
             <Flex
               bg={theme.color.highlight}
               textColor={theme.color.foreground}
+              textAlign="center"
               w={29 / 30}
               h={80}
-              p={10}
+              p={40}
               alignItems="center"
               justifyContent="center"
             >
