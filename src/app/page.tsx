@@ -61,6 +61,11 @@ function Crossword(props: CrosswordProps) {
     padding: "10px",
   };
 
+  function selectSquare(i: number) {
+    inputRefs[i].current?.focus();
+    setSelectedSquare(i);
+  }
+
   const contextValue = {
     allAnswersRevealed,
     direction,
@@ -74,25 +79,25 @@ function Crossword(props: CrosswordProps) {
     selectedSquare,
     size,
     setDirection: (d: Direction) => setDirection(d),
-    setSelectedSquare: (i: number) => setSelectedSquare(i),
+    selectSquare,
     toggleDirection,
     updateUserInput,
     userInputs,
   };
 
   // console.log(`Selected Square: ${selectedSquare}`);
-  // console.log(userInputs);
 
   function tabToNextOrPreviousClue(shiftKey: boolean) {
-    const newCluePointer = shiftKey
+    const newClue = shiftKey
       ? highlightedClue.prevClue
       : highlightedClue.nextClue;
-    const { clueListIndex: newClueListIndex, direction: newDirection } =
-      newCluePointer;
-    const newGridIndex = clues[newDirection][newClueListIndex].gridIndex;
 
-    direction != newDirection && toggleDirection();
-    setSelectedSquare(newGridIndex);
+    const newGridIndex = Math.min(
+      ...clues[newClue.direction][newClue.clueListIndex].cells,
+    );
+
+    direction != newClue.direction && toggleDirection();
+    selectSquare(newGridIndex);
   }
 
   function handleKeyboardEvents(event: any) {

@@ -174,7 +174,6 @@ export function transformData(input: CrosswordInputObject): CrosswordProps {
     },
   );
 
-  // add these into cell props
   const nextSquareAcross = grid.map((g, i) => {
     if (grid[i] === ".") {
       return -1;
@@ -190,15 +189,15 @@ export function transformData(input: CrosswordInputObject): CrosswordProps {
   });
 
   const prevSquareAcross = Array(grid.length);
+
   nextSquareAcross.forEach((n, i) => {
     if (n === -1) {
       prevSquareAcross[i] = -1;
     } else {
-      nextSquareAcross[n] = i;
+      prevSquareAcross[n] = i;
     }
   });
 
-  // add these into cell props
   const nextSquareDown = grid.map((g, i) => {
     if (grid[i] === ".") {
       return -1;
@@ -236,11 +235,6 @@ export function transformData(input: CrosswordInputObject): CrosswordProps {
     () => React.createRef() as React.RefObject<HTMLInputElement>,
   );
 
-  const userInputs = Array.from(
-    { length: grid.length },
-    () => React.createRef() as React.RefObject<string>,
-  );
-
   const cells = grid.map((c, i) => {
     // this is silly
     // maybe add "nextIndex.Across / .Down to this object?"
@@ -266,6 +260,7 @@ export function transformData(input: CrosswordInputObject): CrosswordProps {
     author,
     date,
     dow,
+    // grid: prevSquareAcross.map(n => String(n)),
     grid,
     gridnums,
     initialGrid,

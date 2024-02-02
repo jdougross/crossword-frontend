@@ -15,7 +15,7 @@ export function Blank() {
   );
 }
 
-export function CellDisplay({ index }: Cell) {
+export function CellDisplay({ index, nextIndex }: Cell) {
   const {
     grid,
     gridnums,
@@ -27,15 +27,11 @@ export function CellDisplay({ index }: Cell) {
     allAnswersRevealed,
     inputRefs,
 
-    setSelectedSquare,
+    selectSquare,
     toggleDirection,
     updateUserInput,
     userInputs,
   } = useContext(GameContext);
-
-  // const [userValue, setUserValue] = useState("");
-  // const [userValue, setUserValue] = useState(userInputs[index]);
-  const userValue = userInputs[index];
 
   // should there be a nextIndex: { across: number, down: number }
   // property on each cell, rather than recompute so much?
@@ -71,27 +67,21 @@ export function CellDisplay({ index }: Cell) {
   function handleInputChange(event: React.ChangeEvent<HTMLInputElement>) {
     const newValue = event.target.value.slice(-1).toUpperCase() || "";
     updateUserInput(index, newValue);
-    // setUserValue(newValue);
-    // setUserValue(event.target.value.slice(-1).toUpperCase() || "");
-    const nextIndex = getNextIndex();
+
     // handle edge case of end of puzzle - go back and switch directions
-    setSelectedSquare(nextIndex);
-    inputRefs[index].current?.blur();
-    inputRefs[nextIndex].current?.focus();
+    selectSquare(getNextIndex());
   }
 
   function handleClick() {
     if (selectedSquare == index) {
       toggleDirection();
     } else {
-      setSelectedSquare(index);
+      selectSquare(index);
     }
   }
 
-  function handleFocus() {
-    if (document.activeElement == inputRefs[index].current) {
-      return;
-    }
+  function ignoreTab(event: any) {
+    String(event?.code).includes("Tab") && event.preventDefault();
   }
 
   const cornerLabel = gridnums[index] != 0 ? gridnums[index] : "";
@@ -130,12 +120,12 @@ export function CellDisplay({ index }: Cell) {
             textAlign={"center"}
             textColor={theme.color.foreground}
             _focusVisible={{ outline: "none", caretColor: "transparent" }}
-            value={userValue}
+            value={userInputs[index]}
             ref={inputRefs[index]}
             onChange={handleInputChange}
             onClick={handleClick}
-            autoFocus={selectedSquare == index}
-            // onFocus={handleFocus}
+            autoFocus={selectedSquare === index}
+            onKeyDown={ignoreTab}
           />
         )}
       </Flex>

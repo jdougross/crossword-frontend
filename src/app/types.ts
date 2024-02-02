@@ -80,7 +80,7 @@ export interface GameContextType {
   selectedSquare: number;
   size: { rows: number; cols: number };
   setDirection: (d: Direction) => void;
-  setSelectedSquare: (i: number) => void;
+  selectSquare: (i: number) => void;
   toggleDirection: () => void;
   updateUserInput: (i: number, v: string) => void;
   userInputs: string[];

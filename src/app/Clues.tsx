@@ -12,13 +12,10 @@ function ClueDisplay({
   text,
 }: Clue) {
   const {
-    clues,
     direction: contextDirection,
     highlightedClueNumber,
-    inputRefs,
-    selectedSquare,
     setDirection,
-    setSelectedSquare,
+    selectSquare,
   } = useContext(GameContext);
 
   const backgroundColor =
@@ -28,8 +25,7 @@ function ClueDisplay({
 
   function handleClick() {
     setDirection(propDirection);
-    setSelectedSquare(gridIndex);
-    inputRefs[gridIndex].current?.focus();
+    selectSquare(gridIndex);
   }
 
   return (
