@@ -7,6 +7,7 @@ import {
   Direction,
 } from "./types";
 import React from "react";
+import * as he from "he";
 
 export const theme = {
   border: {
@@ -42,7 +43,7 @@ export function HeaderSection({
 export function parseRawClue(clueString: string) {
   const dot = clueString.indexOf(".");
   const clueNumber = Number(clueString.slice(0, dot));
-  const text = clueString.slice(dot + 1).trim();
+  const text = he.decode(clueString.slice(dot + 1).trim());
   return { clueNumber, text };
 }
 
