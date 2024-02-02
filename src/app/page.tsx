@@ -100,6 +100,7 @@ function Crossword(props: CrosswordProps) {
   };
 
   // console.log(`Selected Square: ${selectedSquare}`);
+  // console.log(`SelectedSquare.nextClues: `, cells[selectedSquare])
 
   function tabToNextOrPreviousClue(shiftKey: boolean) {
     const newClue = shiftKey

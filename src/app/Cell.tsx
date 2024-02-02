@@ -19,9 +19,7 @@ export function CellDisplay({ clues: linkedClues, index, nextIndex }: Cell) {
   const {
     grid,
     gridnums,
-    clueListRefs,
     clues,
-    size,
     direction,
     highlightedSquares,
     selectedSquare,
@@ -34,42 +32,21 @@ export function CellDisplay({ clues: linkedClues, index, nextIndex }: Cell) {
     userInputs,
   } = useContext(GameContext);
 
-  // should there be a nextIndex: { across: number, down: number }
-  // property on each cell, rather than recompute so much?
-
   function getNextIndex() {
-    let topOfClue = -1;
-    if (direction === Direction.DOWN) {
-      // normal down case, open square below
-      if (index + size.cols <= grid.length && grid[index + size.cols] != ".") {
-        return index + size.cols;
-      }
+    const next = nextIndex[direction];
 
-      topOfClue = index;
-      while (topOfClue - size.cols >= 0 && grid[topOfClue] != ".") {
-        topOfClue -= size.cols;
-      }
-    }
-    let nextIndex = topOfClue === -1 ? index + 1 : topOfClue + 1;
-    // we're not finding the next DOWN clue very well here
-    while (grid[nextIndex] == ".") {
-      nextIndex++;
-    }
-
-    // if we finished the last clue, swap directions and go to the top
-    if (nextIndex >= grid.length) {
+    // if at last clue in a direction AND next points earlier in the grid, toggle directions
+    next < selectedSquare &&
+      clues[direction][clues[direction].length - 1].clueNumber ===
+        linkedClues[direction] &&
       toggleDirection();
-      nextIndex = nextIndex % grid.length;
-    }
 
-    return nextIndex;
+    return next;
   }
 
   function handleInputChange(event: React.ChangeEvent<HTMLInputElement>) {
     const newValue = event.target.value.slice(-1).toUpperCase() || "";
     updateUserInput(index, newValue);
-
-    // handle edge case of end of puzzle - go back and switch directions
     selectSquare(getNextIndex());
   }
 
