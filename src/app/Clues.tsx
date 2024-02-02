@@ -1,10 +1,10 @@
 import React, { useContext } from "react";
 import { Clue } from "./types";
 import { GameContext } from "./page";
-import { theme } from "./utils";
+import { fullSize, theme } from "./utils";
 import { Flex, List, ListItem, Text } from "@chakra-ui/react";
 
-function ClueDisplay({
+export function ClueDisplay({
   clueListIndex,
   direction: propDirection,
   clueNumber,
@@ -52,9 +52,9 @@ export function ClueLists() {
     <Flex direction="row">
       {[across, down].map((list, listIndex) => (
         <List
-          height={600}
+          height={680}
           width={300}
-          padding={10}
+          m={10}
           key={`list-${listIndex}`}
           overflowY={"scroll"}
         >

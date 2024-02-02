@@ -10,9 +10,9 @@ import {
   Direction,
   GameContextType,
 } from "./types";
-import { transformData } from "./utils";
+import { theme, transformData } from "./utils";
 import { CellDisplay } from "./Cell";
-import { ClueLists } from "./Clues";
+import { ClueDisplay, ClueLists } from "./Clues";
 import { GridDisplay } from "./GridDisplay";
 
 export const GameContext = createContext({} as GameContextType);
@@ -181,13 +181,27 @@ function Crossword(props: CrosswordProps) {
           </Button>
         </Flex>
         <Flex>
-          <Flex {...dimensions}>
-            <GridDisplay
-              size={size}
-              data={cells}
-              renderChildComponent={renderCell}
-            />
+          <Flex direction="column" alignItems="center">
+            <Flex
+              bg={theme.color.highlight}
+              textColor={theme.color.foreground}
+              w={29 / 30}
+              h={80}
+              p={10}
+              alignItems="center"
+              justifyContent="center"
+            >
+              <ClueDisplay {...highlightedClue} />
+            </Flex>
+            <Flex {...dimensions}>
+              <GridDisplay
+                size={size}
+                data={cells}
+                renderChildComponent={renderCell}
+              />
+            </Flex>
           </Flex>
+
           <Flex>
             <ClueLists />
           </Flex>
