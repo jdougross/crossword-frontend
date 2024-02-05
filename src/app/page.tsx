@@ -105,7 +105,7 @@ function Crossword(props: CrosswordProps) {
       let safety = 0;
 
       while (safety < grid.length && userInputs[newIndex] != "") {
-        console.log(`skipping ${userInputs[newIndex]}...`);
+        // console.log(`skipping ${userInputs[newIndex]}...`);
         newIndex = findNextIndex(newIndex);
         safety++;
       }
@@ -148,17 +148,20 @@ function Crossword(props: CrosswordProps) {
   // console.log(`SelectedSquare.nextClues: `, cells[selectedSquare])
 
   function tabToNextOrPreviousClue(shiftKey: boolean) {
-    // handle if next clue is already filled
-
-    const newClue = shiftKey
+    let newClue = shiftKey
       ? highlightedClue.prevClue
       : highlightedClue.nextClue;
 
-    const newGridIndex = Math.min(
-      ...clues[newClue.direction][newClue.clueListIndex].cells,
-    );
+    let newGridIndex = clues[newClue.direction][
+      newClue.clueListIndex
+    ].cells.find((i) => userInputs[i] === "");
 
-    direction != newClue.direction && toggleDirection();
+    if (newGridIndex === undefined) {
+      newGridIndex = getNextIndex({ skipFilledCells: true, prev: shiftKey });
+    } else {
+      direction != newClue.direction && toggleDirection();
+    }
+
     selectSquare(newGridIndex);
   }
 
