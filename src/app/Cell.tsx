@@ -45,8 +45,10 @@ export function CellDisplay({ clues: linkedClues, index, nextIndex }: Cell) {
     selectSquare(index);
   }
 
-  function ignoreTab(event: any) {
-    String(event?.code).includes("Tab") && event.preventDefault();
+  function preventKeydownDefaults(event: any) {
+    String(event?.code).includes("Tab") ||
+      // String(event?.code).includes("Backspace") ||
+      (String(event?.code).includes("Delete") && event.preventDefault());
   }
 
   const isHighlighted = highlightedClueNumber === linkedClues[direction];
@@ -92,7 +94,7 @@ export function CellDisplay({ clues: linkedClues, index, nextIndex }: Cell) {
             onChange={handleInputChange}
             onClick={handleClick}
             autoFocus={selectedSquare === index}
-            onKeyDown={ignoreTab}
+            onKeyDown={preventKeydownDefaults}
           />
         )}
       </Flex>

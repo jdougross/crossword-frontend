@@ -68,6 +68,9 @@ function Crossword(props: CrosswordProps) {
   }
 
   function selectSquare(i: number) {
+    if (i === selectedSquare) return;
+
+    inputRefs[selectedSquare].current?.blur();
     inputRefs[i].current?.focus();
     setSelectedSquare(i);
   }
@@ -174,11 +177,13 @@ function Crossword(props: CrosswordProps) {
     }
 
     if (event?.code === "Backspace" || event?.code === "Delete") {
-      // should have a method for derive prev square basically.
-      // let prevSquare = (selectedSquare + grid.length - 1) % grid.length;
-      // setSelectedSquare(prevSquare);
-      // inputRefs[prevSquare].current?.focus();
-      // console.log(prevSquare)
+      if (userInputs[selectedSquare].length > 0) {
+        updateUserInput(selectedSquare, "");
+      } else {
+        let nextIndex = getNextIndex({ skipFilledCells: false, prev: true });
+        updateUserInput(nextIndex, "");
+        selectSquare(nextIndex);
+      }
     }
 
     // there's a race-conditions thing here - we may need to pass init index or direction into getNextIndex
