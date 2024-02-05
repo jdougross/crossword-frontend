@@ -2,13 +2,14 @@
 
 import data from "./data.json";
 import { Button, Flex, Text } from "@chakra-ui/react";
-import React, { createContext, useState } from "react";
+import React, { createContext, useEffect, useState } from "react";
 import {
   Cell,
   Clue,
   CrosswordProps,
   Direction,
   GameContextType,
+  GetNextIndexParams,
 } from "./types";
 import { theme, transformData } from "./utils";
 import { CellDisplay } from "./Cell";
@@ -19,6 +20,7 @@ export const GameContext = createContext({} as GameContextType);
 
 function Crossword(props: CrosswordProps) {
   const {
+    boundaryIndexes,
     cells,
     clues,
     clueListRefs,
@@ -34,16 +36,27 @@ function Crossword(props: CrosswordProps) {
   const [selectedSquare, setSelectedSquare] = useState(0);
   const [userInputs, setUserInputs] = useState(initialGrid);
 
-  // checking for wins on every grid change
-  const res = checkGrid();
-  res && console.log("CONGRATULATIONS");
+  const highlightedClueNumber = cells[selectedSquare].clues[direction];
+  const highlightedClue =
+    clues[direction].find(
+      (clue) => clue.clueNumber === highlightedClueNumber,
+    ) || ({} as Clue);
+
+  // scroll the active clue to the top of its list
+  const clueListRef = clueListRefs[direction][highlightedClue.clueListIndex];
+  clueListRef?.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+
+  useEffect(() => {
+    // console.log('userInputs changed')
+    checkGrid() && console.log("CONGRATULATIONS");
+  }, [userInputs]);
 
   function checkGrid() {
-    return grid.every((g, i) => grid[i] === userInputs[i] || g === ".");
+    return grid.every((g, i) => g === userInputs[i] || g === ".");
   }
 
   function updateUserInput(index: number, value: string) {
-    let temp = userInputs;
+    let temp = userInputs.slice();
     temp[index] = value;
     setUserInputs(temp);
   }
@@ -59,18 +72,49 @@ function Crossword(props: CrosswordProps) {
     setSelectedSquare(i);
   }
 
-  const highlightedClueNumber = cells[selectedSquare].clues[direction];
-  const highlightedClue =
-    clues[direction].find(
-      (clue) => clue.clueNumber === highlightedClueNumber,
-    ) || ({} as Clue);
-  const highlightedSquares = highlightedClue
-    ? highlightedClue.cells
-    : [selectedSquare];
+  function getNextIndex({
+    skipFilledCells = true,
+    prev = false,
+  }: GetNextIndexParams) {
+    let newDirection = direction;
 
-  // scroll the active clue to the top of its list
-  const clueListRef = clueListRefs[direction][highlightedClue.clueListIndex];
-  clueListRef?.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    function findNextIndex(currentIndex: number) {
+      let newIndex =
+        cells[currentIndex][prev ? "prevIndex" : "nextIndex"][newDirection];
+
+      // important that the order of newIndex and newDirection being assigned depend on prev
+      if (prev && currentIndex === boundaryIndexes.first[newDirection]) {
+        newDirection =
+          newDirection === Direction.ACROSS ? Direction.DOWN : Direction.ACROSS;
+        newIndex = cells[currentIndex].prevIndex[newDirection];
+      }
+
+      if (!prev && currentIndex === boundaryIndexes.last[newDirection]) {
+        console.log(cells[currentIndex]);
+        newIndex = cells[currentIndex].nextIndex[newDirection];
+        newDirection =
+          newDirection === Direction.ACROSS ? Direction.DOWN : Direction.ACROSS;
+      }
+
+      return newIndex;
+    }
+
+    let newIndex = findNextIndex(selectedSquare);
+
+    if (skipFilledCells) {
+      let safety = 0;
+
+      while (safety < grid.length && userInputs[newIndex] != "") {
+        console.log(`skipping ${userInputs[newIndex]}...`);
+        newIndex = findNextIndex(newIndex);
+        safety++;
+      }
+    }
+
+    newDirection != direction && toggleDirection();
+
+    return newIndex;
+  }
 
   const dim = 600;
   const dimensions = {
@@ -85,10 +129,11 @@ function Crossword(props: CrosswordProps) {
     cells,
     clueListRefs,
     clues,
+    getNextIndex,
     grid,
     gridnums,
     highlightedClueNumber,
-    highlightedSquares,
+    // highlightedSquares,
     inputRefs,
     selectedSquare,
     size,
@@ -103,6 +148,8 @@ function Crossword(props: CrosswordProps) {
   // console.log(`SelectedSquare.nextClues: `, cells[selectedSquare])
 
   function tabToNextOrPreviousClue(shiftKey: boolean) {
+    // handle if next clue is already filled
+
     const newClue = shiftKey
       ? highlightedClue.prevClue
       : highlightedClue.nextClue;
@@ -131,10 +178,41 @@ function Crossword(props: CrosswordProps) {
       // console.log(prevSquare)
     }
 
-    if (String(code).includes("Arrow")) {
-      ["ArrowLeft", "ArrowRight"].includes(code) &&
+    // there's a race-conditions thing here - we may need to pass init index or direction into getNextIndex
+    if (String(code) === "ArrowLeft") {
+      if (direction === Direction.DOWN) {
         setDirection(Direction.ACROSS);
-      ["ArrowUp", "ArrowDown"].includes(code) && setDirection(Direction.DOWN);
+      } else {
+        setSelectedSquare(getNextIndex({ skipFilledCells: false, prev: true }));
+      }
+    }
+
+    if (String(code) === "ArrowRight") {
+      if (direction === Direction.DOWN) {
+        setDirection(Direction.ACROSS);
+      } else {
+        setSelectedSquare(
+          getNextIndex({ skipFilledCells: false, prev: false }),
+        );
+      }
+    }
+
+    if (String(code) === "ArrowUp") {
+      if (direction === Direction.ACROSS) {
+        setDirection(Direction.DOWN);
+      } else {
+        setSelectedSquare(getNextIndex({ skipFilledCells: false, prev: true }));
+      }
+    }
+
+    if (String(code) === "ArrowDown") {
+      if (direction === Direction.ACROSS) {
+        setDirection(Direction.DOWN);
+      } else {
+        setSelectedSquare(
+          getNextIndex({ skipFilledCells: false, prev: false }),
+        );
+      }
     }
 
     if (String(code).includes("Tab")) {

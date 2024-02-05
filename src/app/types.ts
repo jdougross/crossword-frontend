@@ -51,6 +51,16 @@ export interface CrosswordInputObject {
 
 export interface CrosswordProps {
   author: string;
+  boundaryIndexes: {
+    first: {
+      across: number;
+      down: number;
+    };
+    last: {
+      across: number;
+      down: number;
+    };
+  };
   cells: Cell[];
   clueListRefs: {
     across: React.RefObject<HTMLParagraphElement>[];
@@ -73,6 +83,11 @@ export interface CrosswordProps {
   title: string;
 }
 
+export interface GetNextIndexParams {
+  skipFilledCells?: boolean;
+  prev?: boolean;
+}
+
 export interface GameContextType {
   allAnswersRevealed: boolean;
   direction: Direction;
@@ -82,10 +97,11 @@ export interface GameContextType {
     down: React.RefObject<HTMLParagraphElement>[];
   };
   clues: { across: Clue[]; down: Clue[] };
+  getNextIndex: ({}: GetNextIndexParams) => number;
   grid: string[];
   gridnums: number[];
   highlightedClueNumber: number;
-  highlightedSquares: number[];
+  // highlightedSquares: number[];
   inputRefs: Array<React.RefObject<HTMLInputElement>>;
   selectedSquare: number;
   size: { rows: number; cols: number };

@@ -21,7 +21,9 @@ export function CellDisplay({ clues: linkedClues, index, nextIndex }: Cell) {
     gridnums,
     clues,
     direction,
-    highlightedSquares,
+    getNextIndex,
+    highlightedClueNumber,
+    // highlightedSquares,
     selectedSquare,
     allAnswersRevealed,
     inputRefs,
@@ -32,22 +34,10 @@ export function CellDisplay({ clues: linkedClues, index, nextIndex }: Cell) {
     userInputs,
   } = useContext(GameContext);
 
-  function getNextIndex() {
-    const next = nextIndex[direction];
-
-    // if at last clue in a direction AND next points earlier in the grid, toggle directions
-    next < selectedSquare &&
-      clues[direction][clues[direction].length - 1].clueNumber ===
-        linkedClues[direction] &&
-      toggleDirection();
-
-    return next;
-  }
-
   function handleInputChange(event: React.ChangeEvent<HTMLInputElement>) {
     const newValue = event.target.value.slice(-1).toUpperCase() || "";
     updateUserInput(index, newValue);
-    selectSquare(getNextIndex());
+    selectSquare(getNextIndex({}));
   }
 
   function handleClick() {
@@ -59,9 +49,11 @@ export function CellDisplay({ clues: linkedClues, index, nextIndex }: Cell) {
     String(event?.code).includes("Tab") && event.preventDefault();
   }
 
+  const isHighlighted = highlightedClueNumber === linkedClues[direction];
+
   const cornerLabel = gridnums[index] != 0 ? gridnums[index] : "";
 
-  const backgroundColor = highlightedSquares.includes(index)
+  const backgroundColor = isHighlighted
     ? selectedSquare === index
       ? "#DF0"
       : theme.color.highlight

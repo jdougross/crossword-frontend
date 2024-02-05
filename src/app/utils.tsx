@@ -205,8 +205,6 @@ export function transformData(input: CrosswordInputObject): CrosswordProps {
     }
     let nextIndex = i + cols;
 
-    // SOMETHING WRONG HERE - not progressing to next dwn cluetemp
-
     if (!grid[nextIndex] || grid[nextIndex] === ".") {
       // get starting index of next clue
       const currentClue = down.find(
@@ -215,8 +213,7 @@ export function transformData(input: CrosswordInputObject): CrosswordProps {
 
       if (
         !currentClue || // if something went wrong with find
-        !currentClue.clueListIndex || // if optional clueListIndex not populated
-        currentClue.clueListIndex + 1 == down.length // if last clue in the array
+        (currentClue.clueListIndex || 0) + 1 >= down.length // if last clue in the array, or out of index range
       ) {
         return 0;
       }
@@ -225,6 +222,16 @@ export function transformData(input: CrosswordInputObject): CrosswordProps {
     }
 
     return nextIndex;
+  });
+
+  const prevSquareDown = Array(grid.length);
+
+  nextSquareDown.forEach((n, i) => {
+    if (n === -1) {
+      prevSquareDown[i] = -1;
+    } else {
+      prevSquareDown[n] = i;
+    }
   });
 
   // for (let r = 0; r < rows; r++) {
@@ -248,9 +255,6 @@ export function transformData(input: CrosswordInputObject): CrosswordProps {
   };
 
   const cells = grid.map((c, i) => {
-    // this is silly
-    // maybe add "nextIndex.Across / .Down to this object?"
-    // more efficient to track activeClue AND activeSquare? is that redundant / complicated?
     return {
       index: i,
       clues: indexToClue[i],
@@ -259,20 +263,32 @@ export function transformData(input: CrosswordInputObject): CrosswordProps {
         down: nextSquareDown[i],
       },
       prevIndex: {
-        across: 0,
-        down: 0,
+        across: prevSquareAcross[i],
+        down: prevSquareDown[i],
       },
     };
   });
+
+  const boundaryIndexes = {
+    first: {
+      across: 0,
+      down: 0,
+    },
+    last: {
+      across: 224,
+      down: 216,
+    },
+  };
 
   const initialGrid = grid.map((g) => (g === "." ? g : "")); // BLANK GRID with "." prefilled
   // const initialGrid = grid.slice(); initialGrid[0] = ""; // one-away from correct, for testing
 
   return {
     author,
+    boundaryIndexes,
     date,
     dow,
-    // grid: prevSquareAcross.map(n => String(n)),
+    // grid: prevSquareAcross.map((n) => String(n)),
     grid,
     gridnums,
     initialGrid,
