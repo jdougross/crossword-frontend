@@ -79,6 +79,16 @@ function Crossword(props: CrosswordProps) {
     skipFilledCells = true,
     prev = false,
   }: GetNextIndexParams) {
+    // NYT Behavior - finish the clue before going to the next one
+    const atEndOfClue = Math.max(...highlightedClue.cells) === selectedSquare;
+    const unfinishedPartOfClue = highlightedClue.cells.filter(
+      (i) => userInputs[i] === "",
+    );
+
+    if (atEndOfClue && unfinishedPartOfClue.length > 0) {
+      return Math.min(...unfinishedPartOfClue);
+    }
+
     let newDirection = direction;
 
     function findNextIndex(currentIndex: number) {
