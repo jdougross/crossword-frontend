@@ -7,6 +7,7 @@ import {
   Direction,
 } from "./types";
 import React from "react";
+import * as he from "he";
 
 export const theme = {
   border: {
@@ -42,7 +43,7 @@ export function HeaderSection({
 export function parseRawClue(clueString: string) {
   const dot = clueString.indexOf(".");
   const clueNumber = Number(clueString.slice(0, dot));
-  const text = clueString.slice(dot + 1).trim();
+  const text = he.decode(clueString.slice(dot + 1).trim());
   return { clueNumber, text };
 }
 
@@ -174,7 +175,6 @@ export function transformData(input: CrosswordInputObject): CrosswordProps {
     },
   );
 
-  // add these into cell props
   const nextSquareAcross = grid.map((g, i) => {
     if (grid[i] === ".") {
       return -1;
@@ -190,22 +190,20 @@ export function transformData(input: CrosswordInputObject): CrosswordProps {
   });
 
   const prevSquareAcross = Array(grid.length);
+
   nextSquareAcross.forEach((n, i) => {
     if (n === -1) {
       prevSquareAcross[i] = -1;
     } else {
-      nextSquareAcross[n] = i;
+      prevSquareAcross[n] = i;
     }
   });
 
-  // add these into cell props
   const nextSquareDown = grid.map((g, i) => {
     if (grid[i] === ".") {
       return -1;
     }
     let nextIndex = i + cols;
-
-    // SOMETHING WRONG HERE - not progressing to next dwn cluetemp
 
     if (!grid[nextIndex] || grid[nextIndex] === ".") {
       // get starting index of next clue
@@ -215,8 +213,7 @@ export function transformData(input: CrosswordInputObject): CrosswordProps {
 
       if (
         !currentClue || // if something went wrong with find
-        !currentClue.clueListIndex || // if optional clueListIndex not populated
-        currentClue.clueListIndex + 1 == down.length // if last clue in the array
+        (currentClue.clueListIndex || 0) + 1 >= down.length // if last clue in the array, or out of index range
       ) {
         return 0;
       }
@@ -225,6 +222,16 @@ export function transformData(input: CrosswordInputObject): CrosswordProps {
     }
 
     return nextIndex;
+  });
+
+  const prevSquareDown = Array(grid.length);
+
+  nextSquareDown.forEach((n, i) => {
+    if (n === -1) {
+      prevSquareDown[i] = -1;
+    } else {
+      prevSquareDown[n] = i;
+    }
   });
 
   // for (let r = 0; r < rows; r++) {
@@ -236,15 +243,18 @@ export function transformData(input: CrosswordInputObject): CrosswordProps {
     () => React.createRef() as React.RefObject<HTMLInputElement>,
   );
 
-  const userInputs = Array.from(
-    { length: grid.length },
-    () => React.createRef() as React.RefObject<string>,
-  );
+  const clueListRefs = {
+    across: Array.from(
+      { length: across.length },
+      () => React.createRef() as React.RefObject<HTMLParagraphElement>,
+    ),
+    down: Array.from(
+      { length: down.length },
+      () => React.createRef() as React.RefObject<HTMLParagraphElement>,
+    ),
+  };
 
   const cells = grid.map((c, i) => {
-    // this is silly
-    // maybe add "nextIndex.Across / .Down to this object?"
-    // more efficient to track activeClue AND activeSquare? is that redundant / complicated?
     return {
       index: i,
       clues: indexToClue[i],
@@ -253,24 +263,38 @@ export function transformData(input: CrosswordInputObject): CrosswordProps {
         down: nextSquareDown[i],
       },
       prevIndex: {
-        across: 0,
-        down: 0,
+        across: prevSquareAcross[i],
+        down: prevSquareDown[i],
       },
     };
   });
+
+  const boundaryIndexes = {
+    first: {
+      across: 0,
+      down: 0,
+    },
+    last: {
+      across: 224,
+      down: 216,
+    },
+  };
 
   const initialGrid = grid.map((g) => (g === "." ? g : "")); // BLANK GRID with "." prefilled
   // const initialGrid = grid.slice(); initialGrid[0] = ""; // one-away from correct, for testing
 
   return {
     author,
+    boundaryIndexes,
     date,
     dow,
+    // grid: prevSquareAcross.map((n) => String(n)),
     grid,
     gridnums,
     initialGrid,
     inputRefs,
     cells,
+    clueListRefs,
     clues: { across, down },
     size: { rows, cols },
     title,

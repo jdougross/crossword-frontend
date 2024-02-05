@@ -23,10 +23,12 @@ export interface Clue {
     clueListIndex: number;
     direction: Direction;
   };
+  onClick?: () => void;
   prevClue: {
     clueListIndex: number;
     direction: Direction;
   };
+  ref?: React.RefObject<any>;
   text: string;
 }
 
@@ -49,7 +51,21 @@ export interface CrosswordInputObject {
 
 export interface CrosswordProps {
   author: string;
+  boundaryIndexes: {
+    first: {
+      across: number;
+      down: number;
+    };
+    last: {
+      across: number;
+      down: number;
+    };
+  };
   cells: Cell[];
+  clueListRefs: {
+    across: React.RefObject<HTMLParagraphElement>[];
+    down: React.RefObject<HTMLParagraphElement>[];
+  };
   clues: {
     across: Clue[];
     down: Clue[];
@@ -67,20 +83,30 @@ export interface CrosswordProps {
   title: string;
 }
 
+export interface GetNextIndexParams {
+  skipFilledCells?: boolean;
+  prev?: boolean;
+}
+
 export interface GameContextType {
   allAnswersRevealed: boolean;
   direction: Direction;
   cells: Cell[];
+  clueListRefs: {
+    across: React.RefObject<HTMLParagraphElement>[];
+    down: React.RefObject<HTMLParagraphElement>[];
+  };
   clues: { across: Clue[]; down: Clue[] };
+  getNextIndex: ({}: GetNextIndexParams) => number;
   grid: string[];
   gridnums: number[];
   highlightedClueNumber: number;
-  highlightedSquares: number[];
+  // highlightedSquares: number[];
   inputRefs: Array<React.RefObject<HTMLInputElement>>;
   selectedSquare: number;
   size: { rows: number; cols: number };
   setDirection: (d: Direction) => void;
-  setSelectedSquare: (i: number) => void;
+  selectSquare: (i: number) => void;
   toggleDirection: () => void;
   updateUserInput: (i: number, v: string) => void;
   userInputs: string[];
