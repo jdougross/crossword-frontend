@@ -22,7 +22,7 @@ export function CellDisplay({ clues: linkedClues, index, nextIndex }: Cell) {
     clues,
     direction,
     getNextIndex,
-    highlightedClueNumber,
+    selectedClueNumber,
     // highlightedSquares,
     selectedSquare,
     allAnswersRevealed,
@@ -51,7 +51,7 @@ export function CellDisplay({ clues: linkedClues, index, nextIndex }: Cell) {
       (String(event?.code).includes("Delete") && event.preventDefault());
   }
 
-  const isHighlighted = highlightedClueNumber === linkedClues[direction];
+  const isHighlighted = selectedClueNumber === linkedClues[direction];
 
   const cornerLabel = gridnums[index] != 0 ? gridnums[index] : "";
 

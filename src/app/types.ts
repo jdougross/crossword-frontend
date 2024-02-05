@@ -100,7 +100,7 @@ export interface GameContextType {
   getNextIndex: ({}: GetNextIndexParams) => number;
   grid: string[];
   gridnums: number[];
-  highlightedClueNumber: number;
+  selectedClueNumber: number;
   // highlightedSquares: number[];
   inputRefs: Array<React.RefObject<HTMLInputElement>>;
   selectedSquare: number;

@@ -36,15 +36,36 @@ function Crossword(props: CrosswordProps) {
   const [selectedSquare, setSelectedSquare] = useState(0);
   const [userInputs, setUserInputs] = useState(initialGrid);
 
-  const highlightedClueNumber = cells[selectedSquare].clues[direction];
-  const highlightedClue =
-    clues[direction].find(
-      (clue) => clue.clueNumber === highlightedClueNumber,
-    ) || ({} as Clue);
+  const acrossClueNumber = cells[selectedSquare].clues.across;
+  const downClueNumber = cells[selectedSquare].clues.down;
 
-  // scroll the active clue to the top of its list
-  const clueListRef = clueListRefs[direction][highlightedClue.clueListIndex];
-  clueListRef?.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  const acrossClue =
+    clues.across.find((clue) => clue.clueNumber === acrossClueNumber) ||
+    ({} as Clue);
+
+  const downClue =
+    clues.down.find((clue) => clue.clueNumber === downClueNumber) ||
+    ({} as Clue);
+
+  // DfaC behavior: show the alt direction clue next to it
+  const acrossClueListRef = clueListRefs.across[acrossClue.clueListIndex];
+  const downClueListRef = clueListRefs.down[downClue.clueListIndex];
+
+  /*
+    scrollIntoView can't be called twice in succession like this with behavior: "smooth".  Can try to use scrollTo if needed.
+    https://stackoverflow.com/questions/49318497/google-chrome-simultaneously-smooth-scrollintoview-with-more-elements-doesn
+  */
+
+  acrossClueListRef?.current?.scrollIntoView({
+    behavior: "auto",
+    block: "center",
+  });
+  downClueListRef?.current?.scrollIntoView({
+    behavior: "auto",
+    block: "center",
+  });
+
+  const selectedClue = direction === Direction.ACROSS ? acrossClue : downClue;
 
   useEffect(() => {
     // console.log('userInputs changed')
@@ -80,8 +101,8 @@ function Crossword(props: CrosswordProps) {
     prev = false,
   }: GetNextIndexParams) {
     // NYT Behavior - finish the clue before going to the next one
-    const atEndOfClue = Math.max(...highlightedClue.cells) === selectedSquare;
-    const unfinishedPartOfClue = highlightedClue.cells.filter(
+    const atEndOfClue = Math.max(...selectedClue.cells) === selectedSquare;
+    const unfinishedPartOfClue = selectedClue.cells.filter(
       (i) => userInputs[i] === "",
     );
 
@@ -145,7 +166,7 @@ function Crossword(props: CrosswordProps) {
     getNextIndex,
     grid,
     gridnums,
-    highlightedClueNumber,
+    selectedClueNumber: selectedClue.clueNumber,
     // highlightedSquares,
     inputRefs,
     selectedSquare,
@@ -161,9 +182,7 @@ function Crossword(props: CrosswordProps) {
   // console.log(`SelectedSquare.nextClues: `, cells[selectedSquare])
 
   function tabToNextOrPreviousClue(shiftKey: boolean) {
-    let newClue = shiftKey
-      ? highlightedClue.prevClue
-      : highlightedClue.nextClue;
+    let newClue = shiftKey ? selectedClue.prevClue : selectedClue.nextClue;
 
     let newGridIndex = clues[newClue.direction][
       newClue.clueListIndex
@@ -289,7 +308,7 @@ function Crossword(props: CrosswordProps) {
               alignItems="center"
               justifyContent="center"
             >
-              <ClueDisplay {...highlightedClue} />
+              <ClueDisplay {...selectedClue} />
             </Flex>
             <Flex {...dimensions}>
               <GridDisplay
