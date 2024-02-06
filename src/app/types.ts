@@ -86,6 +86,7 @@ export interface CrosswordProps {
 export interface GetNextIndexParams {
   skipFilledCells?: boolean;
   prev?: boolean;
+  touchEveryCell?: boolean;
 }
 
 export interface GameContextType {
@@ -101,7 +102,6 @@ export interface GameContextType {
   grid: string[];
   gridnums: number[];
   selectedClueNumber: number;
-  // highlightedSquares: number[];
   inputRefs: Array<React.RefObject<HTMLInputElement>>;
   selectedSquare: number;
   size: { rows: number; cols: number };

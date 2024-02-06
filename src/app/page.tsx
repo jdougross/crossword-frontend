@@ -89,6 +89,7 @@ function Crossword(props: CrosswordProps) {
   }
 
   function selectSquare(i: number) {
+    // console.log(`selecting ${i}`)
     if (i === selectedSquare) return;
 
     inputRefs[selectedSquare].current?.blur();
@@ -99,18 +100,19 @@ function Crossword(props: CrosswordProps) {
   function getNextIndex({
     skipFilledCells = true,
     prev = false,
+    touchEveryCell = false,
   }: GetNextIndexParams) {
     // NYT Behavior - finish the clue before going to the next one
+    // state updates too slowly to not be included in unfinishedPartOfClue
     const atEndOfClue = Math.max(...selectedClue.cells) === selectedSquare;
     const unfinishedPartOfClue = selectedClue.cells.filter(
       (i) => userInputs[i] === "",
     );
 
-    if (atEndOfClue && unfinishedPartOfClue.length > 0) {
+    if (!touchEveryCell && atEndOfClue && unfinishedPartOfClue.length > 1) {
+      console.log("finishing a clue");
       return Math.min(...unfinishedPartOfClue);
     }
-
-    let newDirection = direction;
 
     function findNextIndex(currentIndex: number) {
       let newIndex =
@@ -133,13 +135,12 @@ function Crossword(props: CrosswordProps) {
       return newIndex;
     }
 
+    let newDirection = direction;
     let newIndex = findNextIndex(selectedSquare);
 
     if (skipFilledCells) {
       let safety = 0;
-
       while (safety < grid.length && userInputs[newIndex] != "") {
-        // console.log(`skipping ${userInputs[newIndex]}...`);
         newIndex = findNextIndex(newIndex);
         safety++;
       }
@@ -167,7 +168,6 @@ function Crossword(props: CrosswordProps) {
     grid,
     gridnums,
     selectedClueNumber: selectedClue.clueNumber,
-    // highlightedSquares,
     inputRefs,
     selectedSquare,
     size,
@@ -209,18 +209,27 @@ function Crossword(props: CrosswordProps) {
       if (userInputs[selectedSquare].length > 0) {
         updateUserInput(selectedSquare, "");
       } else {
-        let nextIndex = getNextIndex({ skipFilledCells: false, prev: true });
+        let nextIndex = getNextIndex({
+          skipFilledCells: false,
+          prev: true,
+          touchEveryCell: true,
+        });
         updateUserInput(nextIndex, "");
         selectSquare(nextIndex);
       }
     }
 
-    // there's a race-conditions thing here - we may need to pass init index or direction into getNextIndex
     if (String(code) === "ArrowLeft") {
       if (direction === Direction.DOWN) {
         setDirection(Direction.ACROSS);
       } else {
-        setSelectedSquare(getNextIndex({ skipFilledCells: false, prev: true }));
+        selectSquare(
+          getNextIndex({
+            skipFilledCells: false,
+            prev: true,
+            touchEveryCell: true,
+          }),
+        );
       }
     }
 
@@ -228,8 +237,12 @@ function Crossword(props: CrosswordProps) {
       if (direction === Direction.DOWN) {
         setDirection(Direction.ACROSS);
       } else {
-        setSelectedSquare(
-          getNextIndex({ skipFilledCells: false, prev: false }),
+        selectSquare(
+          getNextIndex({
+            skipFilledCells: false,
+            prev: false,
+            touchEveryCell: true,
+          }),
         );
       }
     }
@@ -238,7 +251,13 @@ function Crossword(props: CrosswordProps) {
       if (direction === Direction.ACROSS) {
         setDirection(Direction.DOWN);
       } else {
-        setSelectedSquare(getNextIndex({ skipFilledCells: false, prev: true }));
+        selectSquare(
+          getNextIndex({
+            skipFilledCells: false,
+            prev: true,
+            touchEveryCell: true,
+          }),
+        );
       }
     }
 
@@ -246,14 +265,24 @@ function Crossword(props: CrosswordProps) {
       if (direction === Direction.ACROSS) {
         setDirection(Direction.DOWN);
       } else {
-        setSelectedSquare(
-          getNextIndex({ skipFilledCells: false, prev: false }),
+        selectSquare(
+          getNextIndex({
+            skipFilledCells: false,
+            prev: false,
+            touchEveryCell: true,
+          }),
         );
       }
     }
 
     if (String(code).includes("Tab")) {
-      // note that on NYT, tab is necessary to get to next word... ?
+      /* 
+        NYT: tab needed to go to next clue.
+
+        case: edit one letter of completed word,
+        dissatisfying jump to next open square.
+        make configurable?
+      */
       tabToNextOrPreviousClue(shiftKey);
     }
   }
