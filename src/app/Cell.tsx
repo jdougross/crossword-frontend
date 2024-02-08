@@ -19,6 +19,7 @@ export function CellDisplay({ clues: linkedClues, index }: Cell) {
   const {
     grid,
     gridnums,
+    cellsToCheck,
     clues,
     direction,
     getNextIndex,
@@ -92,6 +93,32 @@ export function CellDisplay({ clues: linkedClues, index }: Cell) {
       : theme.color.highlight
     : theme.color.background;
 
+  function CrossOut() {
+    const dim = 24;
+
+    return (
+      <Box zIndex={3} position="relative">
+        <Box position="absolute">
+          <svg width="100%" height="100%" viewBox={`0 0 ${dim} ${dim}`}>
+            <path stroke="red" d={`M 0, 0, m 0, ${dim}, l ${dim}, -${dim}`} />
+          </svg>
+        </Box>
+      </Box>
+    );
+  }
+
+  function CornerLabel(props: { label: string | number }) {
+    return (
+      <Box h={"20%"} position={"absolute"} zIndex={2}>
+        <Text
+          color={theme.color.foreground}
+          fontSize={10}
+          children={String(props.label)}
+        />
+      </Box>
+    );
+  }
+
   return grid[index] == "." ? (
     <Blank />
   ) : (
@@ -102,20 +129,17 @@ export function CellDisplay({ clues: linkedClues, index }: Cell) {
       direction="column"
       {...fullSize}
     >
-      <Box h={"20%"}>
-        <Text
-          color={theme.color.foreground}
-          fontSize={10}
-          children={cornerLabel}
-        />{" "}
-        {/* OK OR NAH? */}
-      </Box>
-      <Flex w="100%" h="100%" align="center" justify="center">
+      {cellsToCheck[index] && grid[index] != userInputs[index] && <CrossOut />}
+
+      <CornerLabel label={cornerLabel} />
+
+      <Flex {...fullSize} align="center" justify="center">
         {allAnswersRevealed ? (
           <Text color={theme.color.foreground} children={grid[index]} />
         ) : (
           <Input
-            w="100%"
+            {...fullSize}
+            zIndex={1}
             backgroundColor={backgroundColor}
             textAlign={"center"}
             textColor={theme.color.foreground}

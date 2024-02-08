@@ -93,6 +93,7 @@ export interface GameContextType {
   allAnswersRevealed: boolean;
   direction: Direction;
   cells: Cell[];
+  cellsToCheck: boolean[];
   clueListRefs: {
     across: React.RefObject<HTMLParagraphElement>[];
     down: React.RefObject<HTMLParagraphElement>[];

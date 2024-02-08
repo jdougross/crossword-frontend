@@ -35,6 +35,15 @@ function Crossword(props: CrosswordProps) {
   const [direction, setDirection] = useState(Direction.ACROSS);
   const [selectedSquare, setSelectedSquare] = useState(0);
   const [userInputs, setUserInputs] = useState(initialGrid);
+  const [cellsToCheck, setCellsToCheck] = useState(
+    Array(grid.length).fill(false),
+  );
+
+  /*
+    we want both check and reveal
+    with a correct check or a reveal, 
+      cell no longer editable, text blue, normal background
+  */
 
   const acrossClueNumber = cells[selectedSquare].clues.across;
   const downClueNumber = cells[selectedSquare].clues.down;
@@ -77,13 +86,16 @@ function Crossword(props: CrosswordProps) {
   }
 
   function updateUserInputs(args: Array<[number, string]>) {
-    let temp = userInputs.slice();
+    let newInputs = userInputs.slice();
+    let newChecks = cellsToCheck.slice();
 
     args.forEach(([index, value]) => {
-      temp[index] = value;
+      newInputs[index] = value;
+      newChecks[index] = false;
     });
 
-    setUserInputs(temp);
+    setUserInputs(newInputs);
+    setCellsToCheck(newChecks);
   }
 
   function toggleDirection() {
@@ -166,6 +178,7 @@ function Crossword(props: CrosswordProps) {
     allAnswersRevealed,
     direction,
     cells,
+    cellsToCheck,
     clueListRefs,
     clues,
     getNextIndex,
@@ -299,6 +312,14 @@ function Crossword(props: CrosswordProps) {
     updateUserInputs(selectedClue.cells.map((i) => [i, grid[i]]));
   }
 
+  function checkCell() {
+    let temp = cellsToCheck.slice();
+    temp[selectedSquare] = true;
+    setCellsToCheck(temp);
+  }
+
+  function checkClue() {}
+
   function renderCell({ props, key }: { props: Cell; key: string }) {
     return <CellDisplay {...props} key={key} />;
   }
@@ -335,6 +356,26 @@ function Crossword(props: CrosswordProps) {
             onClick={toggleDirection}
           >
             <Text>{direction}</Text>
+          </Button>
+
+          <Button
+            w="15%"
+            background="gray"
+            margin={20}
+            padding={4}
+            onClick={checkCell}
+          >
+            <Text>{"Check Cell"}</Text>
+          </Button>
+
+          <Button
+            w="15%"
+            background="gray"
+            margin={20}
+            padding={4}
+            onClick={checkClue}
+          >
+            <Text>{"Check Clue"}</Text>
           </Button>
 
           <Button
