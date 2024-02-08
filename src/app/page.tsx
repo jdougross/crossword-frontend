@@ -76,9 +76,13 @@ function Crossword(props: CrosswordProps) {
     return grid.every((g, i) => g === userInputs[i] || g === ".");
   }
 
-  function updateUserInput(index: number, value: string) {
+  function updateUserInputs(args: Array<[number, string]>) {
     let temp = userInputs.slice();
-    temp[index] = value;
+
+    args.forEach(([index, value]) => {
+      temp[index] = value;
+    });
+
     setUserInputs(temp);
   }
 
@@ -174,7 +178,7 @@ function Crossword(props: CrosswordProps) {
     setDirection: (d: Direction) => setDirection(d),
     selectSquare,
     toggleDirection,
-    updateUserInput,
+    updateUserInputs,
     userInputs,
   };
 
@@ -207,14 +211,14 @@ function Crossword(props: CrosswordProps) {
 
     if (event?.code === "Backspace" || event?.code === "Delete") {
       if (userInputs[selectedSquare].length > 0) {
-        updateUserInput(selectedSquare, "");
+        updateUserInputs([[selectedSquare, ""]]);
       } else {
         let nextIndex = getNextIndex({
           skipFilledCells: false,
           prev: true,
           touchEveryCell: true,
         });
-        updateUserInput(nextIndex, "");
+        updateUserInputs([[nextIndex, ""]]);
         selectSquare(nextIndex);
       }
     }
@@ -287,6 +291,14 @@ function Crossword(props: CrosswordProps) {
     }
   }
 
+  function revealCell() {
+    updateUserInputs([[selectedSquare, grid[selectedSquare]]]);
+  }
+
+  function revealClue() {
+    updateUserInputs(selectedClue.cells.map((i) => [i, grid[i]]));
+  }
+
   function renderCell({ props, key }: { props: Cell; key: string }) {
     return <CellDisplay {...props} key={key} />;
   }
@@ -323,6 +335,26 @@ function Crossword(props: CrosswordProps) {
             onClick={toggleDirection}
           >
             <Text>{direction}</Text>
+          </Button>
+
+          <Button
+            w="15%"
+            background="gray"
+            margin={20}
+            padding={4}
+            onClick={revealCell}
+          >
+            <Text>{"Reveal Cell"}</Text>
+          </Button>
+
+          <Button
+            w="15%"
+            background="gray"
+            margin={20}
+            padding={4}
+            onClick={revealClue}
+          >
+            <Text>{"Reveal Clue"}</Text>
           </Button>
         </Flex>
         <Flex>

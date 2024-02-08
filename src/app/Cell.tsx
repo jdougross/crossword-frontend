@@ -28,7 +28,7 @@ export function CellDisplay({ clues: linkedClues, index }: Cell) {
     inputRefs,
     selectSquare,
     toggleDirection,
-    updateUserInput,
+    updateUserInputs,
     userInputs,
   } = useContext(GameContext);
 
@@ -63,7 +63,7 @@ export function CellDisplay({ clues: linkedClues, index }: Cell) {
       selectSquare(getNextIndex({}));
     }
 
-    updateUserInput(index, newValue);
+    updateUserInputs([[index, newValue]]);
   }
 
   function handleClick() {
