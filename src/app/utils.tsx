@@ -1,11 +1,5 @@
-import { Box, Flex, Heading } from "@chakra-ui/react";
-import {
-  Cell,
-  Clue,
-  CrosswordInputObject,
-  CrosswordProps,
-  Direction,
-} from "./types";
+import { Flex, Heading } from "@chakra-ui/react";
+import { Clue, CrosswordInputObject, CrosswordProps, Direction } from "./types";
 import React from "react";
 import * as he from "he";
 
@@ -137,7 +131,6 @@ export function transformData(input: CrosswordInputObject): CrosswordProps {
     },
   );
 
-  // should these be [] or Record<number, Clue> with a pointer to next / prev?
   const down: Clue[] = rawClues.down.map(
     (clueString: string, clueListIndex) => {
       const { clueNumber, text } = parseRawClue(clueString);

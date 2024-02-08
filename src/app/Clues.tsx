@@ -14,7 +14,7 @@ export function ClueDisplay({
   const {
     clueListRefs,
     direction: contextDirection,
-    highlightedClueNumber,
+    selectedClueNumber,
     setDirection,
     selectSquare,
   } = useContext(GameContext);
@@ -22,12 +22,12 @@ export function ClueDisplay({
   const ref = clueListRefs[propDirection][clueListIndex];
 
   const backgroundColor =
-    clueNumber == highlightedClueNumber && propDirection === contextDirection
+    clueNumber == selectedClueNumber && propDirection === contextDirection
       ? theme.color.highlight
       : theme.color.foreground; // weird theming... bg / fg should be different
 
   const textColor =
-    clueNumber == highlightedClueNumber && propDirection === contextDirection
+    clueNumber == selectedClueNumber && propDirection === contextDirection
       ? theme.color.foreground
       : theme.color.background;
 

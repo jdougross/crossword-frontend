@@ -36,15 +36,36 @@ function Crossword(props: CrosswordProps) {
   const [selectedSquare, setSelectedSquare] = useState(0);
   const [userInputs, setUserInputs] = useState(initialGrid);
 
-  const highlightedClueNumber = cells[selectedSquare].clues[direction];
-  const highlightedClue =
-    clues[direction].find(
-      (clue) => clue.clueNumber === highlightedClueNumber,
-    ) || ({} as Clue);
+  const acrossClueNumber = cells[selectedSquare].clues.across;
+  const downClueNumber = cells[selectedSquare].clues.down;
 
-  // scroll the active clue to the top of its list
-  const clueListRef = clueListRefs[direction][highlightedClue.clueListIndex];
-  clueListRef?.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  const acrossClue =
+    clues.across.find((clue) => clue.clueNumber === acrossClueNumber) ||
+    ({} as Clue);
+
+  const downClue =
+    clues.down.find((clue) => clue.clueNumber === downClueNumber) ||
+    ({} as Clue);
+
+  // DfaC behavior: show the alt direction clue next to it
+  const acrossClueListRef = clueListRefs.across[acrossClue.clueListIndex];
+  const downClueListRef = clueListRefs.down[downClue.clueListIndex];
+
+  /*
+    scrollIntoView can't be called twice in succession like this with behavior: "smooth".  Can try to use scrollTo if needed.
+    https://stackoverflow.com/questions/49318497/google-chrome-simultaneously-smooth-scrollintoview-with-more-elements-doesn
+  */
+
+  acrossClueListRef?.current?.scrollIntoView({
+    behavior: "auto",
+    block: "center",
+  });
+  downClueListRef?.current?.scrollIntoView({
+    behavior: "auto",
+    block: "center",
+  });
+
+  const selectedClue = direction === Direction.ACROSS ? acrossClue : downClue;
 
   useEffect(() => {
     // console.log('userInputs changed')
@@ -68,6 +89,7 @@ function Crossword(props: CrosswordProps) {
   }
 
   function selectSquare(i: number) {
+    // console.log(`selecting ${i}`)
     if (i === selectedSquare) return;
 
     inputRefs[selectedSquare].current?.blur();
@@ -78,18 +100,19 @@ function Crossword(props: CrosswordProps) {
   function getNextIndex({
     skipFilledCells = true,
     prev = false,
+    touchEveryCell = false,
   }: GetNextIndexParams) {
     // NYT Behavior - finish the clue before going to the next one
-    const atEndOfClue = Math.max(...highlightedClue.cells) === selectedSquare;
-    const unfinishedPartOfClue = highlightedClue.cells.filter(
+    // state updates too slowly to not be included in unfinishedPartOfClue
+    const atEndOfClue = Math.max(...selectedClue.cells) === selectedSquare;
+    const unfinishedPartOfClue = selectedClue.cells.filter(
       (i) => userInputs[i] === "",
     );
 
-    if (atEndOfClue && unfinishedPartOfClue.length > 0) {
+    if (!touchEveryCell && atEndOfClue && unfinishedPartOfClue.length > 1) {
+      console.log("finishing a clue");
       return Math.min(...unfinishedPartOfClue);
     }
-
-    let newDirection = direction;
 
     function findNextIndex(currentIndex: number) {
       let newIndex =
@@ -112,13 +135,12 @@ function Crossword(props: CrosswordProps) {
       return newIndex;
     }
 
+    let newDirection = direction;
     let newIndex = findNextIndex(selectedSquare);
 
     if (skipFilledCells) {
       let safety = 0;
-
       while (safety < grid.length && userInputs[newIndex] != "") {
-        // console.log(`skipping ${userInputs[newIndex]}...`);
         newIndex = findNextIndex(newIndex);
         safety++;
       }
@@ -145,8 +167,7 @@ function Crossword(props: CrosswordProps) {
     getNextIndex,
     grid,
     gridnums,
-    highlightedClueNumber,
-    // highlightedSquares,
+    selectedClueNumber: selectedClue.clueNumber,
     inputRefs,
     selectedSquare,
     size,
@@ -161,9 +182,7 @@ function Crossword(props: CrosswordProps) {
   // console.log(`SelectedSquare.nextClues: `, cells[selectedSquare])
 
   function tabToNextOrPreviousClue(shiftKey: boolean) {
-    let newClue = shiftKey
-      ? highlightedClue.prevClue
-      : highlightedClue.nextClue;
+    let newClue = shiftKey ? selectedClue.prevClue : selectedClue.nextClue;
 
     let newGridIndex = clues[newClue.direction][
       newClue.clueListIndex
@@ -190,18 +209,27 @@ function Crossword(props: CrosswordProps) {
       if (userInputs[selectedSquare].length > 0) {
         updateUserInput(selectedSquare, "");
       } else {
-        let nextIndex = getNextIndex({ skipFilledCells: false, prev: true });
+        let nextIndex = getNextIndex({
+          skipFilledCells: false,
+          prev: true,
+          touchEveryCell: true,
+        });
         updateUserInput(nextIndex, "");
         selectSquare(nextIndex);
       }
     }
 
-    // there's a race-conditions thing here - we may need to pass init index or direction into getNextIndex
     if (String(code) === "ArrowLeft") {
       if (direction === Direction.DOWN) {
         setDirection(Direction.ACROSS);
       } else {
-        setSelectedSquare(getNextIndex({ skipFilledCells: false, prev: true }));
+        selectSquare(
+          getNextIndex({
+            skipFilledCells: false,
+            prev: true,
+            touchEveryCell: true,
+          }),
+        );
       }
     }
 
@@ -209,8 +237,12 @@ function Crossword(props: CrosswordProps) {
       if (direction === Direction.DOWN) {
         setDirection(Direction.ACROSS);
       } else {
-        setSelectedSquare(
-          getNextIndex({ skipFilledCells: false, prev: false }),
+        selectSquare(
+          getNextIndex({
+            skipFilledCells: false,
+            prev: false,
+            touchEveryCell: true,
+          }),
         );
       }
     }
@@ -219,7 +251,13 @@ function Crossword(props: CrosswordProps) {
       if (direction === Direction.ACROSS) {
         setDirection(Direction.DOWN);
       } else {
-        setSelectedSquare(getNextIndex({ skipFilledCells: false, prev: true }));
+        selectSquare(
+          getNextIndex({
+            skipFilledCells: false,
+            prev: true,
+            touchEveryCell: true,
+          }),
+        );
       }
     }
 
@@ -227,14 +265,24 @@ function Crossword(props: CrosswordProps) {
       if (direction === Direction.ACROSS) {
         setDirection(Direction.DOWN);
       } else {
-        setSelectedSquare(
-          getNextIndex({ skipFilledCells: false, prev: false }),
+        selectSquare(
+          getNextIndex({
+            skipFilledCells: false,
+            prev: false,
+            touchEveryCell: true,
+          }),
         );
       }
     }
 
     if (String(code).includes("Tab")) {
-      // note that on NYT, tab is necessary to get to next word... ?
+      /* 
+        NYT: tab needed to go to next clue.
+
+        case: edit one letter of completed word,
+        dissatisfying jump to next open square.
+        make configurable?
+      */
       tabToNextOrPreviousClue(shiftKey);
     }
   }
@@ -289,7 +337,7 @@ function Crossword(props: CrosswordProps) {
               alignItems="center"
               justifyContent="center"
             >
-              <ClueDisplay {...highlightedClue} />
+              <ClueDisplay {...selectedClue} />
             </Flex>
             <Flex {...dimensions}>
               <GridDisplay

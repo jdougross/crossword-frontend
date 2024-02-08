@@ -1,6 +1,6 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext } from "react";
 import { GameContext } from "./page";
-import { Cell, Direction } from "./types";
+import { Cell } from "./types";
 import { Box, Flex, Input, Text } from "@chakra-ui/react";
 import { fullSize, theme } from "./utils";
 
@@ -15,19 +15,17 @@ export function Blank() {
   );
 }
 
-export function CellDisplay({ clues: linkedClues, index, nextIndex }: Cell) {
+export function CellDisplay({ clues: linkedClues, index }: Cell) {
   const {
     grid,
     gridnums,
     clues,
     direction,
     getNextIndex,
-    highlightedClueNumber,
-    // highlightedSquares,
+    selectedClueNumber,
     selectedSquare,
     allAnswersRevealed,
     inputRefs,
-
     selectSquare,
     toggleDirection,
     updateUserInput,
@@ -35,9 +33,37 @@ export function CellDisplay({ clues: linkedClues, index, nextIndex }: Cell) {
   } = useContext(GameContext);
 
   function handleInputChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const newValue = event.target.value.slice(-1).toUpperCase() || "";
+    // TODO: handle rebus
+    let inputValue = event.target.value;
+    let oldValue = userInputs[index];
+    let newValue = event.target.value.slice(-1).toUpperCase();
+
+    if (oldValue.length > 0 /* && not rebus */) {
+      newValue = inputValue.replace(oldValue, "").toUpperCase();
+    }
+
+    const activeClue = clues[direction].find(
+      (clue) => clue.clueNumber === selectedClueNumber,
+    );
+    const unfinishedCells =
+      activeClue?.cells.filter((i) => userInputs[i] === "") || [];
+    const atEndOfClue =
+      index === activeClue?.cells[activeClue.cells.length - 1];
+
+    // if editing a prior answer, or finishing remainder of clue, don't auto-proceed
+    if (
+      unfinishedCells.length === 0 ||
+      (unfinishedCells.length === 1 && unfinishedCells[0] === index)
+    ) {
+      !atEndOfClue &&
+        selectSquare(
+          getNextIndex({ skipFilledCells: false, touchEveryCell: true }),
+        );
+    } else {
+      selectSquare(getNextIndex({}));
+    }
+
     updateUserInput(index, newValue);
-    selectSquare(getNextIndex({}));
   }
 
   function handleClick() {
@@ -46,12 +72,17 @@ export function CellDisplay({ clues: linkedClues, index, nextIndex }: Cell) {
   }
 
   function preventKeydownDefaults(event: any) {
-    String(event?.code).includes("Tab") ||
-      // String(event?.code).includes("Backspace") ||
-      (String(event?.code).includes("Delete") && event.preventDefault());
+    if (
+      String(event?.code).includes("Tab") ||
+      String(event?.code).includes("Backspace") ||
+      String(event?.code).includes("Delete")
+    ) {
+      event.preventDefault();
+    }
   }
 
-  const isHighlighted = highlightedClueNumber === linkedClues[direction];
+  // easier to populate linked clues by clue number than clue list index
+  const isHighlighted = selectedClueNumber === linkedClues[direction];
 
   const cornerLabel = gridnums[index] != 0 ? gridnums[index] : "";
 
