@@ -22,6 +22,7 @@ export function CellDisplay({ clues: linkedClues, index }: Cell) {
     cellsToCheck,
     clues,
     direction,
+    editableCells,
     getNextIndex,
     selectedClueNumber,
     selectedSquare,
@@ -33,7 +34,13 @@ export function CellDisplay({ clues: linkedClues, index }: Cell) {
     userInputs,
   } = useContext(GameContext);
 
+  const editable = editableCells[index];
+
   function handleInputChange(event: React.ChangeEvent<HTMLInputElement>) {
+    if (!editable) {
+      return;
+    }
+
     // TODO: handle rebus
     let inputValue = event.target.value;
     let oldValue = userInputs[index];
@@ -87,6 +94,7 @@ export function CellDisplay({ clues: linkedClues, index }: Cell) {
 
   const cornerLabel = gridnums[index] != 0 ? gridnums[index] : "";
 
+  const textColor = editable ? theme.color.foreground : "#00F";
   const backgroundColor = isHighlighted
     ? selectedSquare === index
       ? "#DF0"
@@ -97,7 +105,7 @@ export function CellDisplay({ clues: linkedClues, index }: Cell) {
     const dim = 24;
 
     return (
-      <Box zIndex={3} position="relative">
+      <Box zIndex={3} position="relative" onClick={handleClick}>
         <Box position="absolute">
           <svg width="100%" height="100%" viewBox={`0 0 ${dim} ${dim}`}>
             <path stroke="red" d={`M 0, 0, m 0, ${dim}, l ${dim}, -${dim}`} />
@@ -135,14 +143,14 @@ export function CellDisplay({ clues: linkedClues, index }: Cell) {
 
       <Flex {...fullSize} align="center" justify="center">
         {allAnswersRevealed ? (
-          <Text color={theme.color.foreground} children={grid[index]} />
+          <Text color={textColor} children={grid[index]} />
         ) : (
           <Input
             {...fullSize}
             zIndex={1}
             backgroundColor={backgroundColor}
             textAlign={"center"}
-            textColor={theme.color.foreground}
+            textColor={textColor}
             _focusVisible={{ outline: "none", caretColor: "transparent" }}
             value={userInputs[index]}
             ref={inputRefs[index]}

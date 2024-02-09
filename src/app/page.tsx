@@ -38,12 +38,9 @@ function Crossword(props: CrosswordProps) {
   const [cellsToCheck, setCellsToCheck] = useState(
     Array(grid.length).fill(false),
   );
-
-  /*
-    we want both check and reveal
-    with a correct check or a reveal, 
-      cell no longer editable, text blue, normal background
-  */
+  const [editableCells, setEditableCells] = useState(
+    Array(grid.length).fill(true),
+  );
 
   const acrossClueNumber = cells[selectedSquare].clues.across;
   const downClueNumber = cells[selectedSquare].clues.down;
@@ -77,7 +74,6 @@ function Crossword(props: CrosswordProps) {
   const selectedClue = direction === Direction.ACROSS ? acrossClue : downClue;
 
   useEffect(() => {
-    // console.log('userInputs changed')
     checkGrid() && console.log("CONGRATULATIONS");
   }, [userInputs]);
 
@@ -126,7 +122,6 @@ function Crossword(props: CrosswordProps) {
     );
 
     if (!touchEveryCell && atEndOfClue && unfinishedPartOfClue.length > 1) {
-      console.log("finishing a clue");
       return Math.min(...unfinishedPartOfClue);
     }
 
@@ -142,7 +137,6 @@ function Crossword(props: CrosswordProps) {
       }
 
       if (!prev && currentIndex === boundaryIndexes.last[newDirection]) {
-        console.log(cells[currentIndex]);
         newIndex = cells[currentIndex].nextIndex[newDirection];
         newDirection =
           newDirection === Direction.ACROSS ? Direction.DOWN : Direction.ACROSS;
@@ -156,7 +150,10 @@ function Crossword(props: CrosswordProps) {
 
     if (skipFilledCells) {
       let safety = 0;
-      while (safety < grid.length && userInputs[newIndex] != "") {
+      while (
+        safety < grid.length &&
+        (userInputs[newIndex] != "" || !editableCells[newIndex])
+      ) {
         newIndex = findNextIndex(newIndex);
         safety++;
       }
@@ -181,6 +178,7 @@ function Crossword(props: CrosswordProps) {
     cellsToCheck,
     clueListRefs,
     clues,
+    editableCells,
     getNextIndex,
     grid,
     gridnums,
@@ -199,18 +197,21 @@ function Crossword(props: CrosswordProps) {
   // console.log(`SelectedSquare.nextClues: `, cells[selectedSquare])
 
   function tabToNextOrPreviousClue(shiftKey: boolean) {
-    let newClue = shiftKey ? selectedClue.prevClue : selectedClue.nextClue;
+    let newCluePointer = shiftKey
+      ? selectedClue.prevClue
+      : selectedClue.nextClue;
+    let newClue = clues[newCluePointer.direction][newCluePointer.clueListIndex];
 
-    let newGridIndex = clues[newClue.direction][
-      newClue.clueListIndex
-    ].cells.find((i) => userInputs[i] === "");
-
-    if (newGridIndex === undefined) {
-      newGridIndex = getNextIndex({ skipFilledCells: true, prev: shiftKey });
-    } else {
-      direction != newClue.direction && toggleDirection();
+    while (newClue.cells.every((i) => userInputs[i] != "")) {
+      let { direction, clueListIndex } = shiftKey
+        ? newClue.prevClue
+        : newClue.nextClue;
+      newClue = clues[direction][clueListIndex];
     }
 
+    let newGridIndex =
+      newClue.cells.find((i) => userInputs[i] === "") || newClue.cells[0];
+    direction != newClue.direction && toggleDirection();
     selectSquare(newGridIndex);
   }
 
@@ -223,16 +224,30 @@ function Crossword(props: CrosswordProps) {
     }
 
     if (event?.code === "Backspace" || event?.code === "Delete") {
-      if (userInputs[selectedSquare].length > 0) {
+      /* 
+        NYT - backspace only goes to start of word.
+        - if square is filled and editable, empty it, stay on square
+        - if square is empty, or not editable, go to prev square
+        -   if that square is filled and editable, empty it.
+      */
+      if (
+        userInputs[selectedSquare].length > 0 &&
+        editableCells[selectedSquare]
+      ) {
         updateUserInputs([[selectedSquare, ""]]);
       } else {
-        let nextIndex = getNextIndex({
-          skipFilledCells: false,
-          prev: true,
-          touchEveryCell: true,
-        });
-        updateUserInputs([[nextIndex, ""]]);
-        selectSquare(nextIndex);
+        let indexInClue = selectedClue.cells.indexOf(selectedSquare);
+        let newIndex =
+          indexInClue > 0
+            ? selectedClue.cells[indexInClue - 1]
+            : selectedSquare;
+
+        if (newIndex === selectedSquare) return;
+
+        if (userInputs[newIndex].length > 0 && editableCells[newIndex]) {
+          updateUserInputs([[newIndex, ""]]);
+        }
+        selectSquare(newIndex);
       }
     }
 
@@ -304,21 +319,28 @@ function Crossword(props: CrosswordProps) {
     }
   }
 
-  function revealCell() {
-    updateUserInputs([[selectedSquare, grid[selectedSquare]]]);
+  function freezeCells(indexes: number[]) {
+    let temp = editableCells.slice();
+    indexes.forEach((i) => {
+      temp[i] = false;
+    });
+    setEditableCells(temp);
   }
 
-  function revealClue() {
-    updateUserInputs(selectedClue.cells.map((i) => [i, grid[i]]));
+  function revealCells(indexes: number[]) {
+    freezeCells(indexes);
+    updateUserInputs(indexes.map((i) => [i, grid[i]]));
   }
 
-  function checkCell() {
+  function checkCells(indexes: number[]) {
     let temp = cellsToCheck.slice();
-    temp[selectedSquare] = true;
-    setCellsToCheck(temp);
-  }
+    indexes.forEach((i) => {
+      temp[i] = true;
+    });
 
-  function checkClue() {}
+    setCellsToCheck(temp);
+    freezeCells(indexes.filter((i) => grid[i] == userInputs[i]));
+  }
 
   function renderCell({ props, key }: { props: Cell; key: string }) {
     return <CellDisplay {...props} key={key} />;
@@ -363,7 +385,7 @@ function Crossword(props: CrosswordProps) {
             background="gray"
             margin={20}
             padding={4}
-            onClick={checkCell}
+            onClick={() => checkCells([selectedSquare])}
           >
             <Text>{"Check Cell"}</Text>
           </Button>
@@ -373,7 +395,7 @@ function Crossword(props: CrosswordProps) {
             background="gray"
             margin={20}
             padding={4}
-            onClick={checkClue}
+            onClick={() => checkCells(selectedClue.cells)}
           >
             <Text>{"Check Clue"}</Text>
           </Button>
@@ -383,7 +405,7 @@ function Crossword(props: CrosswordProps) {
             background="gray"
             margin={20}
             padding={4}
-            onClick={revealCell}
+            onClick={() => revealCells([selectedSquare])}
           >
             <Text>{"Reveal Cell"}</Text>
           </Button>
@@ -393,7 +415,7 @@ function Crossword(props: CrosswordProps) {
             background="gray"
             margin={20}
             padding={4}
-            onClick={revealClue}
+            onClick={() => revealCells(selectedClue.cells)}
           >
             <Text>{"Reveal Clue"}</Text>
           </Button>

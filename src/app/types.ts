@@ -99,6 +99,7 @@ export interface GameContextType {
     down: React.RefObject<HTMLParagraphElement>[];
   };
   clues: { across: Clue[]; down: Clue[] };
+  editableCells: boolean[];
   getNextIndex: ({}: GetNextIndexParams) => number;
   grid: string[];
   gridnums: number[];
