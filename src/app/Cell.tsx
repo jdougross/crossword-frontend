@@ -19,8 +19,10 @@ export function CellDisplay({ clues: linkedClues, index }: Cell) {
   const {
     grid,
     gridnums,
+    cellsToCheck,
     clues,
     direction,
+    editableCells,
     getNextIndex,
     selectedClueNumber,
     selectedSquare,
@@ -28,11 +30,17 @@ export function CellDisplay({ clues: linkedClues, index }: Cell) {
     inputRefs,
     selectSquare,
     toggleDirection,
-    updateUserInput,
+    updateUserInputs,
     userInputs,
   } = useContext(GameContext);
 
+  const editable = editableCells[index];
+
   function handleInputChange(event: React.ChangeEvent<HTMLInputElement>) {
+    if (!editable) {
+      return;
+    }
+
     // TODO: handle rebus
     let inputValue = event.target.value;
     let oldValue = userInputs[index];
@@ -63,7 +71,7 @@ export function CellDisplay({ clues: linkedClues, index }: Cell) {
       selectSquare(getNextIndex({}));
     }
 
-    updateUserInput(index, newValue);
+    updateUserInputs([[index, newValue]]);
   }
 
   function handleClick() {
@@ -86,11 +94,38 @@ export function CellDisplay({ clues: linkedClues, index }: Cell) {
 
   const cornerLabel = gridnums[index] != 0 ? gridnums[index] : "";
 
+  const textColor = editable ? theme.color.foreground : "#00F";
   const backgroundColor = isHighlighted
     ? selectedSquare === index
       ? "#DF0"
       : theme.color.highlight
     : theme.color.background;
+
+  function CrossOut() {
+    const dim = 24;
+
+    return (
+      <Box zIndex={3} position="relative" onClick={handleClick}>
+        <Box position="absolute">
+          <svg width="100%" height="100%" viewBox={`0 0 ${dim} ${dim}`}>
+            <path stroke="red" d={`M 0, 0, m 0, ${dim}, l ${dim}, -${dim}`} />
+          </svg>
+        </Box>
+      </Box>
+    );
+  }
+
+  function CornerLabel(props: { label: string | number }) {
+    return (
+      <Box h={"20%"} position={"absolute"} zIndex={2}>
+        <Text
+          color={theme.color.foreground}
+          fontSize={10}
+          children={String(props.label)}
+        />
+      </Box>
+    );
+  }
 
   return grid[index] == "." ? (
     <Blank />
@@ -102,23 +137,20 @@ export function CellDisplay({ clues: linkedClues, index }: Cell) {
       direction="column"
       {...fullSize}
     >
-      <Box h={"20%"}>
-        <Text
-          color={theme.color.foreground}
-          fontSize={10}
-          children={cornerLabel}
-        />{" "}
-        {/* OK OR NAH? */}
-      </Box>
-      <Flex w="100%" h="100%" align="center" justify="center">
+      {cellsToCheck[index] && grid[index] != userInputs[index] && <CrossOut />}
+
+      <CornerLabel label={cornerLabel} />
+
+      <Flex {...fullSize} align="center" justify="center">
         {allAnswersRevealed ? (
-          <Text color={theme.color.foreground} children={grid[index]} />
+          <Text color={textColor} children={grid[index]} />
         ) : (
           <Input
-            w="100%"
+            {...fullSize}
+            zIndex={1}
             backgroundColor={backgroundColor}
             textAlign={"center"}
-            textColor={theme.color.foreground}
+            textColor={textColor}
             _focusVisible={{ outline: "none", caretColor: "transparent" }}
             value={userInputs[index]}
             ref={inputRefs[index]}

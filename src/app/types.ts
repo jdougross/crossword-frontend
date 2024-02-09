@@ -93,11 +93,13 @@ export interface GameContextType {
   allAnswersRevealed: boolean;
   direction: Direction;
   cells: Cell[];
+  cellsToCheck: boolean[];
   clueListRefs: {
     across: React.RefObject<HTMLParagraphElement>[];
     down: React.RefObject<HTMLParagraphElement>[];
   };
   clues: { across: Clue[]; down: Clue[] };
+  editableCells: boolean[];
   getNextIndex: ({}: GetNextIndexParams) => number;
   grid: string[];
   gridnums: number[];
@@ -108,7 +110,7 @@ export interface GameContextType {
   setDirection: (d: Direction) => void;
   selectSquare: (i: number) => void;
   toggleDirection: () => void;
-  updateUserInput: (i: number, v: string) => void;
+  updateUserInputs: (args: Array<[number, string]>) => void;
   userInputs: string[];
 }
 
