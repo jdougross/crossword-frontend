@@ -1,7 +1,7 @@
 "use client";
 
 import data from "./data.json";
-import { Button, Flex, Text } from "@chakra-ui/react";
+import { Button, Flex } from "@chakra-ui/react";
 import React, { createContext, useEffect, useState } from "react";
 import {
   Cell,
@@ -15,6 +15,7 @@ import { theme, transformData } from "./utils";
 import { CellDisplay } from "./Cell";
 import { ClueDisplay, ClueLists } from "./Clues";
 import { GridDisplay } from "./GridDisplay";
+import { MenuSection } from "./MenuSection";
 
 export const GameContext = createContext({} as GameContextType);
 
@@ -342,6 +343,12 @@ function Crossword(props: CrosswordProps) {
     freezeCells(indexes.filter((i) => grid[i] == userInputs[i]));
   }
 
+  function clearCells(indexes: number[]) {
+    updateUserInputs(
+      indexes.filter((i) => editableCells[i]).map((i) => [i, ""]),
+    );
+  }
+
   function renderCell({ props, key }: { props: Cell; key: string }) {
     return <CellDisplay {...props} key={key} />;
   }
@@ -356,69 +363,28 @@ function Crossword(props: CrosswordProps) {
       <GameContext.Provider value={contextValue}>
         {/* <HeaderSection author={author} date={date} title={title} /> */}
         <Flex
-          direction="row"
+          direction="column"
           w="100%"
-          alignItems="center"
-          justifyContent="center"
+          alignItems="flex-end"
+          justifyContent="space-between"
+          p={20}
         >
-          <Button
-            w="15%"
-            background="gray"
-            margin={20}
-            padding={4}
-            onClick={() => setAllAnswersRevealed(!allAnswersRevealed)}
+          <Flex
+            p={20}
+            w="100%"
+            direction="row"
+            alignItems="flex-end"
+            justifyContent="space-between"
           >
-            <Text>{allAnswersRevealed ? "Hide Answers" : "Show Answers"}</Text>
-          </Button>
-          <Button
-            w="15%"
-            background="gray"
-            margin={20}
-            padding={4}
-            onClick={toggleDirection}
-          >
-            <Text>{direction}</Text>
-          </Button>
-
-          <Button
-            w="15%"
-            background="gray"
-            margin={20}
-            padding={4}
-            onClick={() => checkCells([selectedSquare])}
-          >
-            <Text>{"Check Cell"}</Text>
-          </Button>
-
-          <Button
-            w="15%"
-            background="gray"
-            margin={20}
-            padding={4}
-            onClick={() => checkCells(selectedClue.cells)}
-          >
-            <Text>{"Check Clue"}</Text>
-          </Button>
-
-          <Button
-            w="15%"
-            background="gray"
-            margin={20}
-            padding={4}
-            onClick={() => revealCells([selectedSquare])}
-          >
-            <Text>{"Reveal Cell"}</Text>
-          </Button>
-
-          <Button
-            w="15%"
-            background="gray"
-            margin={20}
-            padding={4}
-            onClick={() => revealCells(selectedClue.cells)}
-          >
-            <Text>{"Reveal Clue"}</Text>
-          </Button>
+            <Button>Settings</Button>
+            <Flex>
+              <MenuSection
+                checkCells={checkCells}
+                clearCells={clearCells}
+                revealCells={revealCells}
+              />
+            </Flex>
+          </Flex>
         </Flex>
         <Flex>
           <Flex direction="column" alignItems="center" w={dimensions.w}>
